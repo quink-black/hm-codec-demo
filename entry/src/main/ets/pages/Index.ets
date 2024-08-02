@@ -13,8 +13,7 @@
  * limitations under the License.
  */
 
-import { picker } from '@kit.CoreFileKit';
-import { fileIo } from '@kit.CoreFileKit';
+import { picker, fileIo } from '@kit.CoreFileKit';
 import { display, promptAction, router } from '@kit.ArkUI';
 import player from 'libplayer.so';
 import recorder from 'librecorder.so';

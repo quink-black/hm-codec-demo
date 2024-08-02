@@ -27,11 +27,7 @@
 | ![AVCodec_Index.png](screenshots/device/AVCodec_Index.png) | ![AVCodecSample.gif](screenshots/device/AVCodecSample.gif) | 
 
 ### 使用说明
-1. 弹出是否允许“AVCodec”访问图片与视频？点击“允许”
-
-2. 弹出是否允许“AVCodec”访问文件？点击“允许”
-
-3. 弹出是否允许“AVCodec”使用相机？点击“允许”
+1. 弹出是否允许“AVCodec”使用相机？点击“允许”
 
 #### 录制
 
@@ -150,8 +146,6 @@
 
 ### 相关权限
 
-- 允许应用读取图片和视频: ohos.permission.MEDIA_LOCATION;
-- 允许应用访问文件: ohos.permission.READ_MEDIA, ohos.permission.WRITE_MEDIA;
 - 允许应用使用相机: ohos.permission.CAMERA。
 
 ### 依赖

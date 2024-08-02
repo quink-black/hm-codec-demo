@@ -34,9 +34,7 @@ export default class EntryAbility extends UIAbility {
 
     try {
       let atManager = abilityAccessCtrl.createAtManager();
-      atManager.requestPermissionsFromUser(this.context,
-        ['ohos.permission.MEDIA_LOCATION', 'ohos.permission.READ_MEDIA',
-          'ohos.permission.WRITE_MEDIA', 'ohos.permission.CAMERA'])
+      atManager.requestPermissionsFromUser(this.context, ['ohos.permission.CAMERA'])
         .then((data) => {
           Logger.info('Entry', 'requestPre() data: ' + JSON.stringify(data));
         }).catch((err: BusinessError) => {
