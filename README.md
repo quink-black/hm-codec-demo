@@ -27,7 +27,7 @@
 | ![AVCodec_Index.png](screenshots/device/AVCodec_Index.png) | ![AVCodecSample.gif](screenshots/device/AVCodecSample.gif) | 
 
 ### 使用说明
-1. 弹出是否允许“AVCodec”使用相机？点击“允许”
+1. 弹出是否允许“AVCodecVideo”使用相机？点击“允许”
 
 #### 录制
 
