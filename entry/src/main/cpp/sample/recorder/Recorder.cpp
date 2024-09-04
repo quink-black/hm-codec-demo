@@ -141,6 +141,10 @@ void Recorder::Release() {
         videoEncoder_.reset();
         AVCODEC_SAMPLE_LOGI("Video encoder release successful");
     }
+    if (sampleInfo_.window != nullptr) {
+        OH_NativeWindow_DestroyNativeWindow(sampleInfo_.window);
+        sampleInfo_.window = nullptr;
+    }
     if (encContext_ != nullptr) {
         delete encContext_;
         encContext_ = nullptr;
