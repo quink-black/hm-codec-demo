@@ -46,61 +46,61 @@
 ### 工程目录
 
 ```       
-├──entry/src/main/cpp                 # Native层
-│  ├──capbilities                     # 能力接口和实现
-│  │  ├──include                      # 能力接口
-│  │  ├──AudioDecoder.cpp             # 音频解码实现
-│  │  ├──Demuxer.cpp                  # 解封装实现
-│  │  ├──Muxer.cpp                    # 封装实现
-│  │  ├──VideoDecoder.cpp             # 视频解码实现
-│  │  └──VideoEncoder.cpp             # 视频编码实现
-│  ├──common                          # 公共模块
-│  │  ├──dfx                          # 日志
-│  │  ├──SampleCallback.cpp           # 编解码回调实现   
-│  │  ├──SampleCallback.h             # 编解码回调定义
-│  │  └──SampleInfo.h                 # 功能实现公共类  
-│  ├──render                          # 送显模块接口和实现
-│  │  ├──include                      # 送显模块接口
-│  │  ├──EglCore.cpp                  # 送显参数设置
-│  │  ├──PluginManager.cpp            # 送显模块管理实现
-│  │  └──PluginRender.cpp             # 送显逻辑实现
-│  ├──sample                          # Native层
-│  │  ├──player                       # Native层播放接口和实现
-│  │  │  ├──Player.cpp                # Native层播放功能调用逻辑的实现
-│  │  │  ├──Player.h                  # Native层播放功能调用逻辑的接口
-│  │  │  ├──PlayerNative.cpp          # Native层 播放的入口
+├──entry/src/main/cpp                 // Native层
+│  ├──capbilities                     // 能力接口和实现
+│  │  ├──include                      // 能力接口
+│  │  ├──AudioDecoder.cpp             // 音频解码实现
+│  │  ├──Demuxer.cpp                  // 解封装实现
+│  │  ├──Muxer.cpp                    // 封装实现
+│  │  ├──VideoDecoder.cpp             // 视频解码实现
+│  │  └──VideoEncoder.cpp             // 视频编码实现
+│  ├──common                          // 公共模块
+│  │  ├──dfx                          // 日志
+│  │  ├──SampleCallback.cpp           // 编解码回调实现   
+│  │  ├──SampleCallback.h             // 编解码回调定义
+│  │  └──SampleInfo.h                 // 功能实现公共类  
+│  ├──render                          // 送显模块接口和实现
+│  │  ├──include                      // 送显模块接口
+│  │  ├──EglCore.cpp                  // 送显参数设置
+│  │  ├──PluginManager.cpp            // 送显模块管理实现
+│  │  └──PluginRender.cpp             // 送显逻辑实现
+│  ├──sample                          // Native层
+│  │  ├──player                       // Native层播放接口和实现
+│  │  │  ├──Player.cpp                // Native层播放功能调用逻辑的实现
+│  │  │  ├──Player.h                  // Native层播放功能调用逻辑的接口
+│  │  │  ├──PlayerNative.cpp          // Native层 播放的入口
 │  │  │  └──PlayerNative.h         
-│  │  └──recorder                     # Native层录制接口和实现
-│  │     ├──Recorder.cpp              # Native层录制功能调用逻辑的实现
-│  │     ├──Recorder.h                # Native层录制功能调用逻辑的接口
-│  │     ├──RecorderNative.cpp        # Native层 录制的入口
+│  │  └──recorder                     // Native层录制接口和实现
+│  │     ├──Recorder.cpp              // Native层录制功能调用逻辑的实现
+│  │     ├──Recorder.h                // Native层录制功能调用逻辑的接口
+│  │     ├──RecorderNative.cpp        // Native层 录制的入口
 │  │     └──RecorderNative.h       
-│  ├──types                           # Native层暴露上来的接口
-│  │  ├──libplayer                    # 播放模块暴露给UI层的接口
-│  │  └──librecorder                  # 录制模块暴露给UI层的接口
-│  └──CMakeLists.txt                  # 编译入口       
-├──ets                                # UI层
-│  ├──common                          # 公共模块
-│  │  ├──utils                        # 共用的工具类
-│  │  │  ├──DateTimeUtils.ets         # 获取当前时间
-│  │  │  ├──Logger.ets                # 日志工具
-│  │  │  └──SaveAsset.ets             # 选取文件保持位置
-│  │  └──CommonConstants.ets          # 参数常量
-│  ├──entryability                    # 应用的入口
+│  ├──types                           // Native层暴露上来的接口
+│  │  ├──libplayer                    // 播放模块暴露给UI层的接口
+│  │  └──librecorder                  // 录制模块暴露给UI层的接口
+│  └──CMakeLists.txt                  // 编译入口       
+├──ets                                // UI层
+│  ├──common                          // 公共模块
+│  │  ├──utils                        // 共用的工具类
+│  │  │  ├──DateTimeUtils.ets         // 获取当前时间
+│  │  │  ├──Logger.ets                // 日志工具
+│  │  │  └──SaveAsset.ets             // 选取文件保持位置
+│  │  └──CommonConstants.ets          // 参数常量
+│  ├──entryability                    // 应用的入口
 │  │  └──EntryAbility.ets            
 │  ├──entrybackupability            
 │  │  └──EntryBackupAbility.ets            
-│  └──pages                           # EntryAbility 包含的页面
-│     ├──Index.ets                    # 首页/播放页面
-│     └──Recorder.ets                 # 录制页面
-├──resources                          # 用于存放应用所用到的资源文件
-│  ├──base                            # 该目录下的资源文件会被赋予唯一的ID
-│  │  ├──element                      # 用于存放字体和颜色 
-│  │  ├──media                        # 用于存放图片
-│  │  └──profile                      # 应用入口首页
-│  ├──en_US                           # 设备语言是美式英文时，优先匹配此目录下资源
-│  └──zh_CN                           # 设备语言是简体中文时，优先匹配此目录下资源
-└──module.json5                       # 模块配置信息
+│  └──pages                           // EntryAbility 包含的页面
+│     ├──Index.ets                    // 首页/播放页面
+│     └──Recorder.ets                 // 录制页面
+├──resources                          // 用于存放应用所用到的资源文件
+│  ├──base                            // 该目录下的资源文件会被赋予唯一的ID
+│  │  ├──element                      // 用于存放字体和颜色 
+│  │  ├──media                        // 用于存放图片
+│  │  └──profile                      // 应用入口首页
+│  ├──en_US                           // 设备语言是美式英文时，优先匹配此目录下资源
+│  └──zh_CN                           // 设备语言是简体中文时，优先匹配此目录下资源
+└──module.json5                       // 模块配置信息
 ```
 
 ### 具体实现
