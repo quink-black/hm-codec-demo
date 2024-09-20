@@ -30,15 +30,15 @@
     },
     {
       "name": "playing",
-      "value": "playing"
+      "value": "Playing"
     },
     {
       "name": "play",
-      "value": "play"
+      "value": "Play"
     },
     {
       "name": "record",
-      "value": "record"
+      "value": "Record"
     }
   ]
 }
