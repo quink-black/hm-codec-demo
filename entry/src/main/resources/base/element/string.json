@@ -39,6 +39,10 @@
     {
       "name": "record",
       "value": "Record"
+    },
+    {
+      "name": "alert_setting",
+      "value": "The setting is not supported by the current device."
     }
   ]
 }

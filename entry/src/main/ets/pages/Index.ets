@@ -15,6 +15,7 @@
 
 import { picker, fileIo } from '@kit.CoreFileKit';
 import { display, promptAction, router } from '@kit.ArkUI';
+import { camera } from '@kit.CameraKit';
 import player from 'libplayer.so';
 import recorder from 'librecorder.so';
 import Logger from '../common/utils/Logger';
@@ -30,6 +31,7 @@ class DataModel {
   isHDRVivid: number = Const.DEFAULT_VALUE;
   outputfd: number | null = null;
   frameRate: number = Const.DEFAULT_VALUE;
+  previewProfile: camera.Profile = Const.DEFAULT_PROFILE;
 }
 
 @Entry
@@ -46,6 +48,7 @@ struct Player {
   private display = display.getDefaultDisplaySync();
   private heightPx = (this.display.width * this.cameraHeight / this.cameraWidth) + Const.PX;
   private frameRate: number = Const.FRAMERATE_VIDEO_30FPS;
+  private previewProfile: camera.Profile = Const.DEFAULT_PROFILE;
   private outputfd: number | null = null;
 
   selectFile() {
@@ -80,7 +83,8 @@ struct Player {
               cameraHeight: this.cameraHeight,
               isHDRVivid: this.isHDRVivid,
               outputfd: this.outputfd,
-              frameRate: this.frameRate
+              frameRate: this.frameRate,
+              previewProfile: this.previewProfile
             };
             router.pushUrl({
               url: 'pages/Recorder',
@@ -108,6 +112,86 @@ struct Player {
       this.buttonEnabled = true;
       fileIo.close(inputFile);
     })
+  }
+
+  async checkIsProfileSupport() {
+    let cameraManager: camera.CameraManager = camera.getCameraManager(getContext(this));
+    if (!cameraManager) {
+      Logger.error(TAG, 'camera.getCameraManager error!');
+    }
+
+    let cameraDevices = cameraManager.getSupportedCameras();
+    if (cameraDevices !== undefined && cameraDevices.length <= 0) {
+      Logger.error(TAG, 'cameraManager.getSupportedCameras error!');
+    }
+
+    let profiles: camera.CameraOutputCapability = cameraManager.getSupportedOutputCapability(cameraDevices[0],
+      camera.SceneMode.NORMAL_VIDEO);
+    if (!profiles) {
+      Logger.error(TAG, 'cameraManager.getSupportedOutputCapability error');
+      return;
+    }
+
+    let videoProfiles: Array<camera.VideoProfile> = profiles.videoProfiles;
+    if (!videoProfiles) {
+      Logger.error(TAG, 'Get videoProfiles error!')
+      return;
+    }
+
+    let videoSize: camera.Size = {
+      width: this.cameraWidth,
+      height: this.cameraHeight
+    }
+
+    let videoProfile: undefined | camera.VideoProfile = videoProfiles.find((profile: camera.VideoProfile) => {
+      if (this.isHDRVivid) {
+        if (this.frameRate == Const.FRAMERATE_VIDEO_30FPS) {
+          return profile.size.width === videoSize.width &&
+            profile.size.height === videoSize.height &&
+            profile.format === camera.CameraFormat.CAMERA_FORMAT_YCBCR_P010 &&
+            profile.frameRateRange.min === 1 &&
+            profile.frameRateRange.max === 30;
+        } else {
+          return profile.size.width === videoSize.width &&
+            profile.size.height === videoSize.height &&
+            profile.format === camera.CameraFormat.CAMERA_FORMAT_YCBCR_P010 &&
+            profile.frameRateRange.min == this.frameRate &&
+            profile.frameRateRange.max == this.frameRate;
+        }
+      } else {
+        if (this.frameRate == Const.FRAMERATE_VIDEO_30FPS) {
+          return profile.size.width === videoSize.width &&
+            profile.size.height === videoSize.height &&
+            profile.format === camera.CameraFormat.CAMERA_FORMAT_YUV_420_SP &&
+            profile.frameRateRange.min === 1 &&
+            profile.frameRateRange.max === 30;
+        } else {
+          return profile.size.width === videoSize.width &&
+            profile.size.height === videoSize.height &&
+            profile.format === camera.CameraFormat.CAMERA_FORMAT_YUV_420_SP &&
+            profile.frameRateRange.min == this.frameRate &&
+            profile.frameRateRange.max == this.frameRate;
+        }
+      }
+    });
+
+    if (!videoProfile) {
+      Logger.error(TAG, 'videoProfile is not found');
+      promptAction.showToast({
+        message: $r('app.string.alert_setting'),
+        duration: Const.DURATION,
+        bottom: Const.BOTTOM,
+        backgroundColor: Color.White,
+        backgroundBlurStyle: BlurStyle.NONE
+      })
+      this.cameraWidth = Const.DEFAULT_WIDTH;
+      this.cameraHeight = Const.DEFAULT_HEIGHT;
+      this.frameRate = Const.FRAMERATE_VIDEO_30FPS;
+      this.isHDRVivid = Const.DEFAULT_VALUE;
+      this.videoCodecMime = Const.MIME_VIDEO_AVC;
+      this.bitRate = Const.BITRATE_VIDEO_20M;
+      return;
+    }
   }
 
   @Builder
@@ -140,6 +224,7 @@ struct Player {
             case Const.VIDEO_MIMETYPE[0]: {
               this.videoCodecMime = Const.MIME_VIDEO_HEVC;
               this.isHDRVivid = Const.TRUE;
+              this.previewProfile.format
               break;
             }
             case Const.VIDEO_MIMETYPE[1]: {
@@ -161,6 +246,7 @@ struct Player {
               this.cameraWidth = Const.VIDEO_WIDTH_4K;
               this.cameraHeight = Const.VIDEO_HEIGHT_4K;
               this.bitRate = Const.BITRATE_VIDEO_30M;
+              this.previewProfile = Const.Four_K_PROFILE;
               break;
             }
             case Const.VIDEO_RESOLUTION[1]: {
@@ -191,6 +277,7 @@ struct Player {
             default:
               break;
           }
+          this.checkIsProfileSupport();
         }
       });
     })

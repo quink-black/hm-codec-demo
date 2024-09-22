@@ -31,6 +31,7 @@ const cameraHeight: number = params.cameraHeight;
 const isHDRVivid: number = params.isHDRVivid;
 const frameRate: number = params.frameRate;
 const outputfd: number = params.outputfd;
+const previewProfiler: camera.Profile = params.previewProfile;
 
 let cameraInput: camera.CameraInput;
 let XComponentPreviewOutput: camera.PreviewOutput;
@@ -44,6 +45,7 @@ class RouTmp {
   isHDRVivid: number = Const.DEFAULT_VALUE;
   frameRate: number = Const.DEFAULT_VALUE;
   outputfd: number = Const.DEFAULT_VALUE;
+  previewProfile: camera.Profile = Const.DEFAULT_PROFILE;
 }
 
 async function releaseCamera() {
@@ -99,6 +101,7 @@ struct Recorder {
   private XComponentController: XComponentController = new XComponentController();
   private display = display.getDefaultDisplaySync();
   private heightPx = (this.display.width * this.cameraWidth / this.cameraHeight) + Const.PX;
+  private widthPx = this.display.width  + Const.PX;
   private timer: number = Const.DEFAULT_VALUE;
   private seconds: number = Const.DEFAULT_VALUE;
   private isReleased: boolean = false;
@@ -174,7 +177,7 @@ struct Recorder {
     }
 
     //The preview stream of XComponent.
-    let XComponentPreviewProfile: camera.Profile = previewProfiles[0];
+    let XComponentPreviewProfile: camera.Profile = previewProfiler;
     if (XComponentPreviewProfile === undefined) {
       Logger.error(TAG, 'XComponentPreviewProfile is not found');
       return;
@@ -333,7 +336,6 @@ struct Recorder {
       XComponent({
         id: 'recorderXComponent',
         type: XComponentType.SURFACE,
-        libraryname: '',
         controller: this.XComponentController
       })
         .onLoad(() => {
@@ -344,7 +346,7 @@ struct Recorder {
           this.isRecorderTimeTextHide = false;
           this.getRecordTime();
         })
-        .width(Const.FULL_SIZE)
+        .width(this.widthPx)
         .height(this.heightPx)
         .gesture(
           PinchGesture()

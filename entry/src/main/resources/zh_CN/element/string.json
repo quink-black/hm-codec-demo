@@ -39,6 +39,10 @@
     {
       "name": "record",
       "value": "录制"
+    },
+    {
+      "name": "alert_setting",
+      "value": "当前设备不支持该设置。"
     }
   ]
 }
