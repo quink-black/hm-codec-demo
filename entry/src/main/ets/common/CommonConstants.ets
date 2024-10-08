@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import { camera } from '@kit.CameraKit';
 
 export class CommonConstants {
@@ -47,17 +48,6 @@ export class CommonConstants {
     size: {
       width: 1920,
       height: 1080
-    }
-  };
-  /**
-   * HDR 4K profile.
-   */
-  static readonly Four_K_PROFILE: camera.Profile = {
-    format: camera.CameraFormat.CAMERA_FORMAT_YUV_420_SP,
-    size: {
-      width: 2560,
-      height: 1440
-
     }
   };
   /**

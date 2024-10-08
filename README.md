@@ -33,13 +33,13 @@
 
 1. 点击“录制”
 
-2. 选取视频输出路径，默认为【我的手机】文件夹下
+2. 确认允许录制文件保存到图库
 
 3. 录制完成后点击“停止录制”
 
 #### 播放
 
-1. 推送视频文件至storage/media/100/local/files/Docs下或点击下方“开始录制”，录制一个视频文件（无音频）
+1. 推送视频文件至图库下或点击下方“开始录制”，录制一个视频文件（无音频）
 
 2. 点击播放按钮，选择文件，开始播放
 
@@ -82,14 +82,16 @@
 ├──ets                                // UI层
 │  ├──common                          // 公共模块
 │  │  ├──utils                        // 共用的工具类
+│  │  │  ├──CameraCheck.ets           // 检查相机参数是否支持
 │  │  │  ├──DateTimeUtils.ets         // 获取当前时间
-│  │  │  ├──Logger.ets                // 日志工具
-│  │  │  └──SaveAsset.ets             // 选取文件保持位置
+│  │  │  └──Logger.ets                // 日志工具
 │  │  └──CommonConstants.ets          // 参数常量
 │  ├──entryability                    // 应用的入口
 │  │  └──EntryAbility.ets            
 │  ├──entrybackupability            
-│  │  └──EntryBackupAbility.ets            
+│  │  └──EntryBackupAbility.ets   
+│  ├──model            
+│  │  └──CameraDataModel.ets          // 相机参数数据类  
 │  └──pages                           // EntryAbility 包含的页面
 │     ├──Index.ets                    // 首页/播放页面
 │     └──Recorder.ets                 // 录制页面
@@ -107,7 +109,7 @@
 
 #### *录制*
 ##### UI层
-1. 在UI层Index页面，用户点击“录制”后，会调起文件管理，用户选择一个输出地址。录制结束后，文件会存放于此。
+1. 在UI层Index页面，用户点击“录制”后，会拉起半模态界面，用户确认保存录制文件到图库。录制结束后，文件会存放于图库。
 2. 选择好文件后，会用刚刚打开的fd，和用户预设的录制参数，掉起ArkTS的initNative，待初始化结束后，调用OH_NativeWindow_GetSurfaceId接口，得到NativeWindow的surfaceId，并把surfaceId回调回UI层。
 3. UI层拿到编码器给的surfaceId后，调起页面路由，携带该surfaceId，跳转到Recorder页面；
 4. 录制页面XComponent构建时，会调起.onLoad()方法，此方法首先会拿到XComponent的surfaceId，然后调起createDualChannelPreview(),此函数会建立一个相机生产，XComponent和编码器的surface消费的生产消费模型。
@@ -122,7 +124,7 @@
 
 #### *播放*
 ##### UI层
-1. 在UI层Index页面，用户点击播放按钮后，触发点击事件，调起selectFile()函数，该函数会调起文件管理的选择文件模块，拿到用户选取文件的路径;
+1. 在UI层Index页面，用户点击播放按钮后，触发点击事件，调起selectFile()函数，该函数会调起图库的选择文件模块，拿到用户选取文件的路径;
 2. 用户选择文件成功后，调起play()函数，该函数会根据上一步获取到的路径，打开一个文件，并获取到该文件的大小，改变按钮状态为不可用，之后调起ArkTS层暴露给应用层的playNative()接口;
 3. 根据playNative字段，调起PlayerNative::Play()函数，此处会注册播放结束的回调。
 4. 播放结束时，Callback()中napi_call_function()接口调起，通知应用层，恢复按钮状态为可用。

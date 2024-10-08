@@ -13,51 +13,40 @@
  * limitations under the License.
  */
 
-import { picker, fileIo } from '@kit.CoreFileKit';
+import { fileIo } from '@kit.CoreFileKit';
 import { display, promptAction, router } from '@kit.ArkUI';
 import { camera } from '@kit.CameraKit';
+import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import player from 'libplayer.so';
 import recorder from 'librecorder.so';
 import Logger from '../common/utils/Logger';
-import SaveAsset from '../common/utils/SaveCameraAsset';
+import DateTimeUtil from '../common/utils/DateTimeUtils';
 import { CommonConstants as Const } from '../common/CommonConstants';
+import { CameraDataModel } from '../model/CameraDateModel';
+import { cameraCheck } from '../common/utils/CameraCheck';
 
 const TAG: string = Const.INDEX_TAG;
-
-class DataModel {
-  surfaceId: string = '';
-  cameraWidth: number = Const.DEFAULT_VALUE;
-  cameraHeight: number = Const.DEFAULT_VALUE;
-  isHDRVivid: number = Const.DEFAULT_VALUE;
-  outputfd: number | null = null;
-  frameRate: number = Const.DEFAULT_VALUE;
-  previewProfile: camera.Profile = Const.DEFAULT_PROFILE;
-}
+const DATETIME: DateTimeUtil = new DateTimeUtil();
 
 @Entry
 @Component
 struct Player {
   @State buttonEnabled: boolean = true;
+  @State isShow: boolean = false;
+  private cameraData: CameraDataModel = new CameraDataModel();
   private selectFilePath: string | null = null;
-  private mSaveAsset: SaveAsset = new SaveAsset(TAG);
-  private videoCodecMime: string | null = Const.MIME_VIDEO_AVC;
-  private isHDRVivid: number = Const.DEFAULT_VALUE;
-  private cameraWidth: number = Const.DEFAULT_WIDTH;
-  private cameraHeight: number = Const.DEFAULT_HEIGHT;
-  private bitRate: number = Const.BITRATE_VIDEO_20M;
   private display = display.getDefaultDisplaySync();
-  private heightPx = (this.display.width * this.cameraHeight / this.cameraWidth) + Const.PX;
-  private frameRate: number = Const.FRAMERATE_VIDEO_30FPS;
-  private previewProfile: camera.Profile = Const.DEFAULT_PROFILE;
-  private outputfd: number | null = null;
+  private heightPx = (this.display.width * Const.DEFAULT_HEIGHT / Const.DEFAULT_WIDTH) + Const.PX;
 
   selectFile() {
-    let documentSelectOptions = new picker.DocumentSelectOptions;
-    let documentViewPicker = new picker.DocumentViewPicker;
-    documentViewPicker.select(documentSelectOptions)
-      .then((documentSelectResult) => {
-        this.selectFilePath = documentSelectResult[0];
-        if (this.selectFilePath == null) {
+    let photoPicker = new photoAccessHelper.PhotoViewPicker();
+    photoPicker.select({
+      MIMEType: photoAccessHelper.PhotoViewMIMETypes.VIDEO_TYPE,
+      maxSelectNumber: 1
+    })
+      .then((photoSelectResult) => {
+        this.selectFilePath = photoSelectResult.photoUris[0];
+        if (this.selectFilePath === null) {
           promptAction.showToast({
             message: $r('app.string.alert'),
             duration: Const.DURATION,
@@ -68,33 +57,6 @@ struct Player {
           Logger.info(TAG, 'documentViewPicker.select to file succeed and URI is:' + this.selectFilePath);
         }
       });
-  }
-
-  async selectOutputFilePath(): Promise<void> {
-    this.outputfd = await this.mSaveAsset.createVideoFd();
-    if (this.outputfd !== null) {
-      recorder.initNative(this.outputfd, this.videoCodecMime, this.cameraWidth,
-        this.cameraHeight, this.frameRate, this.isHDRVivid, this.bitRate)
-        .then((data) => {
-          if (data.surfaceId !== null) {
-            let paramsInfo: DataModel = {
-              surfaceId: data.surfaceId,
-              cameraWidth: this.cameraWidth,
-              cameraHeight: this.cameraHeight,
-              isHDRVivid: this.isHDRVivid,
-              outputfd: this.outputfd,
-              frameRate: this.frameRate,
-              previewProfile: this.previewProfile
-            };
-            router.pushUrl({
-              url: 'pages/Recorder',
-              params: paramsInfo
-            });
-          }
-        })
-    } else {
-      Logger.error(TAG, 'get outputfd failed');
-    }
   }
 
   play() {
@@ -120,61 +82,7 @@ struct Player {
       Logger.error(TAG, 'camera.getCameraManager error!');
     }
 
-    let cameraDevices = cameraManager.getSupportedCameras();
-    if (cameraDevices !== undefined && cameraDevices.length <= 0) {
-      Logger.error(TAG, 'cameraManager.getSupportedCameras error!');
-    }
-
-    let profiles: camera.CameraOutputCapability = cameraManager.getSupportedOutputCapability(cameraDevices[0],
-      camera.SceneMode.NORMAL_VIDEO);
-    if (!profiles) {
-      Logger.error(TAG, 'cameraManager.getSupportedOutputCapability error');
-      return;
-    }
-
-    let videoProfiles: Array<camera.VideoProfile> = profiles.videoProfiles;
-    if (!videoProfiles) {
-      Logger.error(TAG, 'Get videoProfiles error!')
-      return;
-    }
-
-    let videoSize: camera.Size = {
-      width: this.cameraWidth,
-      height: this.cameraHeight
-    }
-
-    let videoProfile: undefined | camera.VideoProfile = videoProfiles.find((profile: camera.VideoProfile) => {
-      if (this.isHDRVivid) {
-        if (this.frameRate == Const.FRAMERATE_VIDEO_30FPS) {
-          return profile.size.width === videoSize.width &&
-            profile.size.height === videoSize.height &&
-            profile.format === camera.CameraFormat.CAMERA_FORMAT_YCBCR_P010 &&
-            profile.frameRateRange.min === 1 &&
-            profile.frameRateRange.max === 30;
-        } else {
-          return profile.size.width === videoSize.width &&
-            profile.size.height === videoSize.height &&
-            profile.format === camera.CameraFormat.CAMERA_FORMAT_YCBCR_P010 &&
-            profile.frameRateRange.min == this.frameRate &&
-            profile.frameRateRange.max == this.frameRate;
-        }
-      } else {
-        if (this.frameRate == Const.FRAMERATE_VIDEO_30FPS) {
-          return profile.size.width === videoSize.width &&
-            profile.size.height === videoSize.height &&
-            profile.format === camera.CameraFormat.CAMERA_FORMAT_YUV_420_SP &&
-            profile.frameRateRange.min === 1 &&
-            profile.frameRateRange.max === 30;
-        } else {
-          return profile.size.width === videoSize.width &&
-            profile.size.height === videoSize.height &&
-            profile.format === camera.CameraFormat.CAMERA_FORMAT_YUV_420_SP &&
-            profile.frameRateRange.min == this.frameRate &&
-            profile.frameRateRange.max == this.frameRate;
-        }
-      }
-    });
-
+    let videoProfile: undefined | camera.VideoProfile = cameraCheck(cameraManager, this.cameraData);
     if (!videoProfile) {
       Logger.error(TAG, 'videoProfile is not found');
       promptAction.showToast({
@@ -184,12 +92,7 @@ struct Player {
         backgroundColor: Color.White,
         backgroundBlurStyle: BlurStyle.NONE
       })
-      this.cameraWidth = Const.DEFAULT_WIDTH;
-      this.cameraHeight = Const.DEFAULT_HEIGHT;
-      this.frameRate = Const.FRAMERATE_VIDEO_30FPS;
-      this.isHDRVivid = Const.DEFAULT_VALUE;
-      this.videoCodecMime = Const.MIME_VIDEO_AVC;
-      this.bitRate = Const.BITRATE_VIDEO_20M;
+      this.cameraData = new CameraDataModel();
       return;
     }
   }
@@ -222,19 +125,15 @@ struct Player {
         onAccept: (value: TextPickerResult) => {
           switch (value.value[0]) {
             case Const.VIDEO_MIMETYPE[0]: {
-              this.videoCodecMime = Const.MIME_VIDEO_HEVC;
-              this.isHDRVivid = Const.TRUE;
-              this.previewProfile.format
+              this.cameraData.setCodecFormat(Const.TRUE, Const.MIME_VIDEO_HEVC);
               break;
             }
             case Const.VIDEO_MIMETYPE[1]: {
-              this.videoCodecMime = Const.MIME_VIDEO_AVC;
-              this.isHDRVivid = Const.FALSE;
+              this.cameraData.setCodecFormat(Const.FALSE, Const.MIME_VIDEO_AVC);
               break;
             }
             case Const.VIDEO_MIMETYPE[2]: {
-              this.videoCodecMime = Const.MIME_VIDEO_HEVC;
-              this.isHDRVivid = Const.FALSE;
+              this.cameraData.setCodecFormat(Const.FALSE, Const.MIME_VIDEO_HEVC);
               break;
             }
             default:
@@ -243,22 +142,15 @@ struct Player {
 
           switch (value.value[1]) {
             case Const.VIDEO_RESOLUTION[0]: {
-              this.cameraWidth = Const.VIDEO_WIDTH_4K;
-              this.cameraHeight = Const.VIDEO_HEIGHT_4K;
-              this.bitRate = Const.BITRATE_VIDEO_30M;
-              this.previewProfile = Const.Four_K_PROFILE;
+              this.cameraData.setResolution(Const.VIDEO_WIDTH_4K, Const.VIDEO_HEIGHT_4K, Const.BITRATE_VIDEO_30M);
               break;
             }
             case Const.VIDEO_RESOLUTION[1]: {
-              this.cameraWidth = Const.VIDEO_WIDTH_1080P;
-              this.cameraHeight = Const.VIDEO_HEIGHT_1080P;
-              this.bitRate = Const.BITRATE_VIDEO_20M;
+              this.cameraData.setResolution(Const.VIDEO_WIDTH_1080P, Const.VIDEO_HEIGHT_1080P, Const.BITRATE_VIDEO_20M);
               break;
             }
             case Const.VIDEO_RESOLUTION[2]: {
-              this.cameraWidth = Const.VIDEO_WIDTH_720P;
-              this.cameraHeight = Const.VIDEO_HEIGHT_720P;
-              this.bitRate = Const.BITRATE_VIDEO_10M;
+              this.cameraData.setResolution(Const.VIDEO_WIDTH_720P, Const.VIDEO_HEIGHT_720P, Const.BITRATE_VIDEO_10M);
               break;
             }
             default:
@@ -267,11 +159,11 @@ struct Player {
 
           switch (value.value[2]) {
             case Const.VIDEO_FRAMERATE[0]: {
-              this.frameRate = Const.FRAMERATE_VIDEO_30FPS;
+              this.cameraData.frameRate = Const.FRAMERATE_VIDEO_30FPS;
               break;
             }
             case Const.VIDEO_FRAMERATE[1]: {
-              this.frameRate = Const.FRAMERATE_VIDEO_60FPS;
+              this.cameraData.frameRate = Const.FRAMERATE_VIDEO_60FPS;
               break;
             }
             default:
@@ -281,6 +173,61 @@ struct Player {
         }
       });
     })
+  }
+
+  @Builder
+  Authorized() {
+    Column() {
+      Text($r('app.string.saveButtonNote'))
+        .width('360.42vp')
+        .fontSize('16vp')
+        .margin({ bottom: '12vp' })
+
+      Row() {
+        Button($r('app.string.saveButtonCancel'))
+          .onClick(() => {
+            this.isShow = false;
+          })
+          .width('174.38vp')
+          .margin({ right: '12vp' })
+
+        SaveButton({ text: SaveDescription.SAVE })
+          .onClick(async () => {
+            const context = getContext(this);
+            let helper = photoAccessHelper.getPhotoAccessHelper(context);
+            let uri = await helper.createAsset(photoAccessHelper.PhotoType.VIDEO, 'mp4', {
+              title: `AVCodecVideo_${DATETIME.getDate()}_${DATETIME.getTime()}`
+            });
+            let file = await fileIo.open(uri, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
+            this.cameraData.outputfd = file.fd;
+            if (this.cameraData.outputfd !== null) {
+              recorder.initNative(this.cameraData.outputfd, this.cameraData.videoCodecMime, this.cameraData.cameraWidth,
+                this.cameraData.cameraHeight, this.cameraData.frameRate, this.cameraData.isHDRVivid,
+                this.cameraData.bitRate).then((data) => {
+                if (data.surfaceId !== null) {
+                  this.cameraData.surfaceId = data.surfaceId;
+                  router.pushUrl({
+                    url: 'pages/Recorder',
+                    params: this.cameraData
+                  });
+                }
+              })
+            } else {
+              Logger.error(TAG, 'get outputfd failed!');
+            }
+          })
+          .width('174.38vp')
+          .height('40vp')
+      }
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Bottom)
+      .margin({ bottom: '44vp' })
+      .width('100%')
+      .height('52vp')
+    }
+    .justifyContent(FlexAlign.End)
+    .width('100%')
+    .height('100%')
   }
 
   @Builder
@@ -331,7 +278,13 @@ struct Player {
 
         Button($r('app.string.record'))
           .onClick(() => {
-            this.selectOutputFilePath();
+            this.isShow = true;
+          })
+          .bindSheet($$this.isShow, this.Authorized, {
+            height: 210,
+            title: {
+              title: $r('app.string.saveButtonTitle')
+            }
           })
           .size({
             width: $r('app.float.index_button_width'),
