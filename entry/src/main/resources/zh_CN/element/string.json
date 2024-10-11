@@ -39,6 +39,22 @@
     {
       "name": "record",
       "value": "录制"
+    },
+    {
+      "name": "alert_setting",
+      "value": "当前设备不支持该设置。"
+    },
+    {
+      "name": "saveButtonNote",
+      "value": "是否允许AVCodecVideo保存拍摄的视频到图库？"
+    },
+    {
+      "name": "saveButtonCancel",
+      "value": "取消"
+    },
+    {
+      "name": "saveButtonTitle",
+      "value": "视频保存位置确认"
     }
   ]
 }

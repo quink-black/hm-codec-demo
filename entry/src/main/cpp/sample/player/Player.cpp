@@ -133,7 +133,8 @@ int32_t Player::Start() {
         audioDecInputThread_ = std::make_unique<std::thread>(&Player::AudioDecInputThread, this);
         audioDecOutputThread_ = std::make_unique<std::thread>(&Player::AudioDecOutputThread, this);
 #ifdef DEBUG_DECODE
-        // for debug The decoded data is written to the sandbox address, and the physical address is /data/app/el2/100/base/com.example.avcodecsample/haps/entry/files/
+        // for debug The decoded data is written to the sandbox address, and the physical address is
+        // /data/app/el2/100/base/com.example.avcodecsample/haps/entry/files/
         audioOutputFile_.open("/data/storage/el2/base/haps/entry/files/audio_decode_out.pcm",
                               std::ios::out | std::ios::binary);
 #endif
@@ -224,6 +225,7 @@ void Player::Release() {
         audioDecContext_ = nullptr;
     }
     OH_AudioStreamBuilder_Destroy(builder_);
+    builder_ = nullptr;
     doneCond_.notify_all();
     // Trigger the callback
     sampleInfo_.playDoneCallback(sampleInfo_.playDoneCallbackData);

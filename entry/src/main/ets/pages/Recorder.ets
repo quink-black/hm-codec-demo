@@ -21,30 +21,17 @@ import recorder from 'librecorder.so';
 import Logger from '../common/utils/Logger';
 import { dateTime } from '../common/utils/DateTimeUtils';
 import { CommonConstants as Const } from '../common/CommonConstants';
+import { CameraDataModel } from '../model/CameraDateModel';
+import { cameraCheck } from '../common/utils/CameraCheck';
 
 const TAG: string = Const.RECORDER_TAG;
 
-const params: RouTmp = router.getParams() as RouTmp;
-const encoderSurfaceId: string = params.surfaceId;
-const cameraWidth: number = params.cameraWidth;
-const cameraHeight: number = params.cameraHeight;
-const isHDRVivid: number = params.isHDRVivid;
-const frameRate: number = params.frameRate;
-const outputfd: number = params.outputfd;
+const params: CameraDataModel = router.getParams() as CameraDataModel;
 
 let cameraInput: camera.CameraInput;
 let XComponentPreviewOutput: camera.PreviewOutput;
 let encoderVideoOutput: camera.VideoOutput;
 let videoSession: camera.VideoSession;
-
-class RouTmp {
-  surfaceId: string = Const.DEFAULT_ID;
-  cameraWidth: number = Const.DEFAULT_VALUE;
-  cameraHeight: number = Const.DEFAULT_VALUE;
-  isHDRVivid: number = Const.DEFAULT_VALUE;
-  frameRate: number = Const.DEFAULT_VALUE;
-  outputfd: number = Const.DEFAULT_VALUE;
-}
 
 async function releaseCamera() {
   // Stop the video output stream
@@ -60,7 +47,7 @@ async function releaseCamera() {
   // Stop the Session.
   videoSession.stop();
   // Close file fd.
-  fileIo.close(outputfd);
+  fileIo.close(params.outputfd);
   // Close camera input stream.
   cameraInput.close();
   // Release preview output stream.
@@ -70,19 +57,6 @@ async function releaseCamera() {
   Logger.info(TAG, 'encoderVideoOutput release');
   // Release session.
   videoSession.release();
-}
-
-function getCameraDevices(cameraManager: camera.CameraManager): Array<camera.CameraDevice> {
-  let cameraArray: Array<camera.CameraDevice> = cameraManager.getSupportedCameras();
-  if (cameraArray !== undefined && cameraArray.length <= 0) {
-    Logger.error(TAG, 'cameraManager.getSupportedCameras error');
-    return [];
-  }
-  for (let index = 0; index < cameraArray.length; index++) {
-    Logger.info(TAG, 'getCameraDevices -- cameraId :' + cameraArray[index].cameraId);
-    Logger.info(TAG, 'getCameraDevices -- cameraPosition :' + cameraArray[index].cameraPosition);
-  }
-  return cameraArray;
 }
 
 @Entry
@@ -99,6 +73,7 @@ struct Recorder {
   private XComponentController: XComponentController = new XComponentController();
   private display = display.getDefaultDisplaySync();
   private heightPx = (this.display.width * this.cameraWidth / this.cameraHeight) + Const.PX;
+  private widthPx = this.display.width + Const.PX;
   private timer: number = Const.DEFAULT_VALUE;
   private seconds: number = Const.DEFAULT_VALUE;
   private isReleased: boolean = false;
@@ -149,82 +124,27 @@ struct Recorder {
     }
 
     // Get supported camera devices.
-    let camerasDevices: Array<camera.CameraDevice> = getCameraDevices(cameraManager);
-
-    // Get profile object.
-    let profiles: camera.CameraOutputCapability = cameraManager.getSupportedOutputCapability(camerasDevices[0],
-      camera.SceneMode.NORMAL_VIDEO);
-    if (!profiles) {
-      Logger.error(TAG, 'cameraManager.getSupportedOutputCapability error');
+    let cameraDevices: Array<camera.CameraDevice> = cameraManager.getSupportedCameras();
+    if (cameraDevices !== undefined && cameraDevices.length <= 0) {
+      Logger.error(TAG, 'cameraManager.getSupportedCameras error!');
       return;
     }
 
-    // Get the preview stream profile
-    let previewProfiles: Array<camera.Profile> = profiles.previewProfiles;
-    if (!previewProfiles) {
-      Logger.error(TAG, 'createOutput previewProfiles == null || undefined');
-      return;
-    }
-
-    // Get the video stream profile.
-    let videoProfiles: Array<camera.VideoProfile> = profiles.videoProfiles;
-    if (!videoProfiles) {
-      Logger.error(TAG, 'createOutput videoProfiles == null || undefined');
+    let videoProfile: undefined | camera.VideoProfile = cameraCheck(cameraManager, params);
+    if (!videoProfile) {
+      Logger.error(TAG, 'videoProfile is not found!');
       return;
     }
 
     //The preview stream of XComponent.
-    let XComponentPreviewProfile: camera.Profile = previewProfiles[0];
+    let XComponentPreviewProfile: camera.Profile = params.previewProfile;
     if (XComponentPreviewProfile === undefined) {
       Logger.error(TAG, 'XComponentPreviewProfile is not found');
       return;
     }
 
-    // The videoProfile's width and height need to be the same as the encoder's width and height.
-    let videoSize: camera.Size = {
-      width: cameraWidth,
-      height: cameraHeight
-    };
-
-    // Matches the videoProfile selected by the user.
-    let videoProfile: undefined | camera.VideoProfile = videoProfiles.find((profile: camera.VideoProfile) => {
-      if (isHDRVivid) {
-        if (frameRate === Const.FRAMERATE_VIDEO_30FPS) {
-          return profile.size.width === videoSize.width &&
-            profile.size.height === videoSize.height &&
-            profile.format === camera.CameraFormat.CAMERA_FORMAT_YCBCR_P010 &&
-            profile.frameRateRange.min === Const.MIN_RANGE &&
-            profile.frameRateRange.max === Const.MAX_RANGE;
-        } else {
-          return profile.size.width === videoSize.width &&
-            profile.size.height === videoSize.height &&
-            profile.format === camera.CameraFormat.CAMERA_FORMAT_YCBCR_P010 &&
-            profile.frameRateRange.min === frameRate &&
-            profile.frameRateRange.max === frameRate;
-        }
-      } else {
-        if (frameRate == Const.FRAMERATE_VIDEO_30FPS) {
-          return profile.size.width === videoSize.width &&
-            profile.size.height === videoSize.height &&
-            profile.format === camera.CameraFormat.CAMERA_FORMAT_YUV_420_SP &&
-            profile.frameRateRange.min ===  Const.MIN_RANGE &&
-            profile.frameRateRange.max ===  Const.MAX_RANGE;
-        } else {
-          return profile.size.width === videoSize.width &&
-            profile.size.height === videoSize.height &&
-            profile.format === camera.CameraFormat.CAMERA_FORMAT_YUV_420_SP &&
-            profile.frameRateRange.min === frameRate &&
-            profile.frameRateRange.max === frameRate;
-        }
-      }
-    });
-    if (!videoProfile) {
-      Logger.error(TAG, 'videoProfile is not found');
-      return;
-    }
-
     //Create the encoder output object
-    encoderVideoOutput = cameraManager.createVideoOutput(videoProfile, encoderSurfaceId);
+    encoderVideoOutput = cameraManager.createVideoOutput(videoProfile, params.surfaceId);
     if (encoderVideoOutput === undefined) {
       Logger.error(TAG, 'encoderVideoOutput is undefined');
       return;
@@ -240,7 +160,7 @@ struct Recorder {
 
     // Create the cameraInput object.
     try {
-      cameraInput = cameraManager.createCameraInput(camerasDevices[0]);
+      cameraInput = cameraManager.createCameraInput(cameraDevices[0]);
     } catch (error) {
       let err = error as BusinessError;
       Logger.error(TAG, `Failed to createCameraInput. error: ${JSON.stringify(err)}`);
@@ -333,7 +253,6 @@ struct Recorder {
       XComponent({
         id: 'recorderXComponent',
         type: XComponentType.SURFACE,
-        libraryname: '',
         controller: this.XComponentController
       })
         .onLoad(() => {
@@ -344,7 +263,7 @@ struct Recorder {
           this.isRecorderTimeTextHide = false;
           this.getRecordTime();
         })
-        .width(Const.FULL_SIZE)
+        .width(this.widthPx)
         .height(this.heightPx)
         .gesture(
           PinchGesture()

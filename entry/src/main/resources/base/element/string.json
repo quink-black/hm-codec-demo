@@ -39,6 +39,22 @@
     {
       "name": "record",
       "value": "Record"
+    },
+    {
+      "name": "alert_setting",
+      "value": "The setting is not supported by the current device."
+    },
+    {
+      "name": "saveButtonNote",
+      "value": "Allow AVCodecVideo to save captured video to gallery?"
+    },
+    {
+      "name": "saveButtonCancel",
+      "value": "Cancel"
+    },
+    {
+      "name": "saveButtonTitle",
+      "value": "Confirm the video storage location"
     }
   ]
 }
