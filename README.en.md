@@ -20,7 +20,6 @@ This sample demonstrates video playback and recording implemented on AVCodec.
 | Muxing Format | Video Codec Type |
 |---------------|------------------|
 | mp4           | H.264/H.265      | AAC, MPEG (MP3)|
-| m4a           | AVC (H.264)      |
 
 This sample supports only video recording. It does not integrate the audio capability.
 
