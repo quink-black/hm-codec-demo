@@ -76,7 +76,7 @@ struct Player {
     })
   }
 
-  async checkIsProfileSupport() {
+  async checkIsProfileSupport(): Promise<void> {
     let cameraManager: camera.CameraManager = camera.getCameraManager(getContext(this));
     if (!cameraManager) {
       Logger.error(TAG, 'camera.getCameraManager error!');
