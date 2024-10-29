@@ -33,7 +33,7 @@ let XComponentPreviewOutput: camera.PreviewOutput;
 let encoderVideoOutput: camera.VideoOutput;
 let videoSession: camera.VideoSession;
 
-async function releaseCamera() {
+async function releaseCamera(): Promise<void> {
   // Stop the video output stream
   if (encoderVideoOutput) {
     encoderVideoOutput.stop((err: BusinessError) => {
@@ -42,7 +42,7 @@ async function releaseCamera() {
         return;
       }
       Logger.info(TAG, 'Callback invoked to indicate the encoder video output stop success.');
-    })
+    });
   }
   // Stop the Session.
   videoSession.stop();
@@ -91,7 +91,7 @@ struct Recorder {
     }
   }
 
-  async release() {
+  async release(): Promise<void> {
     if (!this.isReleased) {
       this.isReleased = true;
       clearInterval(this.timer);
@@ -99,11 +99,11 @@ struct Recorder {
       this.videoRecorderTimeText = Const.DEFAULT_TIME;
 
       recorder.stopNative().then(async (data) => {
-        if (data.code == 0) {
+        if (data.code === 0) {
           await releaseCamera();
           this.playFlag = false;
         }
-      })
+      });
     }
   }
 
@@ -245,7 +245,7 @@ struct Recorder {
         return;
       }
       Logger.info(TAG, 'Callback invoked to indicate the encoder video output start success.');
-    })
+    });
   }
 
   build() {
