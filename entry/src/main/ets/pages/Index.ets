@@ -179,7 +179,7 @@ struct Player {
   Authorized() {
     Column() {
       Text($r('app.string.saveButtonNote'))
-        .width('360.42vp')
+        .width('100%')
         .fontSize('16vp')
         .margin({ bottom: '12vp' })
 
@@ -188,8 +188,9 @@ struct Player {
           .onClick(() => {
             this.isShow = false;
           })
-          .width('174.38vp')
-          .margin({ right: '12vp' })
+          .width('48%')
+
+        Blank()
 
         SaveButton({ text: SaveDescription.SAVE })
           .onClick(async () => {
@@ -216,16 +217,17 @@ struct Player {
               Logger.error(TAG, 'get outputfd failed!');
             }
           })
-          .width('174.38vp')
+          .width('48%')
           .height('40vp')
       }
-      .justifyContent(FlexAlign.Center)
+      .justifyContent(FlexAlign.SpaceAround)
       .alignItems(VerticalAlign.Bottom)
       .margin({ bottom: '44vp' })
       .width('100%')
       .height('52vp')
     }
     .justifyContent(FlexAlign.End)
+    .padding({left: '16vp', right: '16vp'})
     .width('100%')
     .height('100%')
   }
@@ -270,7 +272,7 @@ struct Player {
             this.selectFile();
           })
           .size({
-            width: $r('app.float.index_button_width'),
+            width: '100%',
             height: $r('app.float.index_button_height')
           })
           .enabled(this.buttonEnabled)
@@ -287,16 +289,16 @@ struct Player {
             }
           })
           .size({
-            width: $r('app.float.index_button_width'),
+            width: '100%',
             height: $r('app.float.index_button_height')
           })
           .enabled(this.buttonEnabled)
-          .margin({ bottom: $r('app.float.last_button_margin_bottom') })
       }
       .alignRules({
         'bottom': { 'anchor': '__container__', 'align': VerticalAlign.Bottom },
         'left': { 'anchor': '__container__', 'align': HorizontalAlign.Start }
       })
+      .padding({left: '16vp', right: '16vp', bottom:'16vp'})
       .width($r('app.string.full_width'))
       .height($r('app.float.index_column_height'))
       .justifyContent(FlexAlign.End)
