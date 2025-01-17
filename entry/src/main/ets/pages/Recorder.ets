@@ -22,7 +22,8 @@ import Logger from '../common/utils/Logger';
 import { dateTime } from '../common/utils/DateTimeUtils';
 import { CommonConstants as Const } from '../common/CommonConstants';
 import { CameraDataModel } from '../model/CameraDateModel';
-import { cameraCheck } from '../common/utils/CameraCheck';
+import { previewProfileCameraCheck, videoProfileCheck } from '../common/utils/CameraCheck';
+import { colorSpaceManager } from '@kit.ArkGraphics2D';
 
 const TAG: string = Const.RECORDER_TAG;
 
@@ -57,6 +58,59 @@ async function releaseCamera(): Promise<void> {
   Logger.info(TAG, 'encoderVideoOutput release');
   // Release session.
   videoSession.release();
+}
+
+function isVideoStabilizationModeSupported(session: camera.VideoSession, mode: camera.VideoStabilizationMode): boolean {
+  let isSupported: boolean = false;
+  try {
+    isSupported = session.isVideoStabilizationModeSupported(mode);
+  } catch (error) {
+    // 失败返回错误码error.code并处理
+    let err = error as BusinessError;
+    console.error(`The isVideoStabilizationModeSupported call failed. error code: ${err.code}`);
+  }
+  return isSupported;
+}
+
+function setVideoStabilizationMode(session: camera.VideoSession): boolean {
+  let mode: camera.VideoStabilizationMode = camera.VideoStabilizationMode.AUTO;
+  // 查询是否支持视频防抖
+  let isSupported: boolean = isVideoStabilizationModeSupported(session, mode);
+  if (isSupported) {
+    console.info(`setVideoStabilizationMode: ${mode}`);
+    // 设置视频防抖
+    session.setVideoStabilizationMode(mode);
+    let activeVideoStabilizationMode = session.getActiveVideoStabilizationMode();
+    console.info(`activeVideoStabilizationMode: ${activeVideoStabilizationMode}`);
+  } else {
+    console.info(`videoStabilizationMode: ${mode} is not support`);
+  }
+  return isSupported;
+}
+
+function getSupportedColorSpaces(session: camera.VideoSession): Array<colorSpaceManager.ColorSpace> {
+  let colorSpaces: Array<colorSpaceManager.ColorSpace> = [];
+  try {
+    colorSpaces = session.getSupportedColorSpaces();
+  } catch (error) {
+    let err = error as BusinessError;
+    console.error(`The getSupportedColorSpaces call failed. error code: ${err.code}`);
+  }
+  return colorSpaces;
+}
+
+function setColorSpaceBeforeCommitConfig(session: camera.VideoSession, isHdr: boolean): void {
+  let colorSpace: colorSpaceManager.ColorSpace = isHdr? colorSpaceManager.ColorSpace.BT2020_HLG_LIMIT : colorSpaceManager.ColorSpace.BT709_LIMIT;
+  let colorSpaces: Array<colorSpaceManager.ColorSpace> = getSupportedColorSpaces(session);
+  let isSupportedColorSpaces = colorSpaces.indexOf(colorSpace) >= 0;
+  if (isSupportedColorSpaces) {
+    console.info(`setColorSpace: ${colorSpace}`);
+    session.setColorSpace(colorSpace);
+    let activeColorSpace:colorSpaceManager.ColorSpace = session.getActiveColorSpace();
+    console.info(`activeColorSpace: ${activeColorSpace}`);
+  } else {
+    console.info(`colorSpace: ${colorSpace} is not support`);
+  }
 }
 
 @Entry
@@ -130,14 +184,22 @@ struct Recorder {
       return;
     }
 
-    let videoProfile: undefined | camera.VideoProfile = cameraCheck(cameraManager, params);
+    // 获取支持的模式类型
+    let sceneModes: Array<camera.SceneMode> = cameraManager.getSupportedSceneModes(cameraDevices[0]);
+    let isSupportVideoMode: boolean = sceneModes.indexOf(camera.SceneMode.NORMAL_VIDEO) >= 0;
+    if (!isSupportVideoMode) {
+      Logger.error('video mode not support');
+      return;
+    }
+
+    let videoProfile: undefined | camera.VideoProfile = videoProfileCheck(cameraManager, params);
     if (!videoProfile) {
       Logger.error(TAG, 'videoProfile is not found!');
       return;
     }
 
-    //The preview stream of XComponent.
-    let XComponentPreviewProfile: camera.Profile = params.previewProfile;
+    // The preview stream of XComponent.
+    let XComponentPreviewProfile: camera.Profile | undefined = previewProfileCameraCheck(cameraManager, params)
     if (XComponentPreviewProfile === undefined) {
       Logger.error(TAG, 'XComponentPreviewProfile is not found');
       return;
@@ -228,6 +290,12 @@ struct Recorder {
     } catch (error) {
       let err = error as BusinessError;
       Logger.error(TAG, `videoSession commitConfig error: ${JSON.stringify(err)}`);
+    }
+
+    // 设置视频防抖
+    if (setVideoStabilizationMode(videoSession)) {
+      // 设置色彩空间
+      setColorSpaceBeforeCommitConfig(videoSession, true);
     }
 
     // Session start.

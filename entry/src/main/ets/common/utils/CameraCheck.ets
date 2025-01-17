@@ -20,7 +20,53 @@ import { CommonConstants as Const } from '../CommonConstants';
 
 const TAG = 'CAMERA_CHECK';
 
-export function cameraCheck(cameraManager: camera.CameraManager,
+function getPreviewProfile(previewProfiles: Array<camera.Profile>, size: camera.Size, isHDRVivid: number): undefined | camera.Profile {
+  let previewProfile: undefined | camera.Profile = previewProfiles.find((profile: camera.Profile) => {
+    if(isHDRVivid) {
+      return profile.format === camera.CameraFormat.CAMERA_FORMAT_YCRCB_P010 &&
+        profile.size.width === size.width && profile.size.height == size.height
+    } else {
+    return profile.format === camera.CameraFormat.CAMERA_FORMAT_YUV_420_SP &&
+      profile.size.width === size.width && profile.size.height == size.height
+    }
+  });
+  return previewProfile;
+}
+
+export function previewProfileCameraCheck(cameraManager: camera.CameraManager,
+  cameraData: CameraDataModel): undefined | camera.Profile {
+  let cameraDevices = cameraManager.getSupportedCameras();
+  if (cameraDevices !== undefined && cameraDevices.length <= 0) {
+    Logger.error(TAG, 'cameraManager.getSupportedCameras error!');
+    return;
+  }
+
+  let profiles: camera.CameraOutputCapability =
+    cameraManager.getSupportedOutputCapability(cameraDevices[0], camera.SceneMode.NORMAL_VIDEO);
+  if (!profiles) {
+    Logger.error(TAG, 'cameraManager.getSupportedOutputCapability error!');
+    return;
+  }
+
+  let previewProfilesArray: Array<camera.Profile> = profiles.previewProfiles;
+  if (!previewProfilesArray) {
+    Logger.error("createOutput previewProfilesArray == null || undefined");
+    return;
+  }
+
+  let videoSize: camera.Size = {
+    width: 1920,
+    height: 1080
+  }
+  let previewProfile: undefined | camera.Profile = getPreviewProfile(previewProfilesArray, videoSize, cameraData.isHDRVivid);
+  if (!previewProfile) {
+    Logger.error('previewProfile is not found');
+    return;
+  }
+  return previewProfile;
+}
+
+export function videoProfileCheck(cameraManager: camera.CameraManager,
   cameraData: CameraDataModel): undefined | camera.VideoProfile {
   let cameraDevices = cameraManager.getSupportedCameras();
   if (cameraDevices !== undefined && cameraDevices.length <= 0) {
