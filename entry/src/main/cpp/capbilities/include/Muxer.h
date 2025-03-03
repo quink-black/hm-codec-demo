@@ -19,7 +19,6 @@
 #include <bits/alltypes.h>
 #include "multimedia/player_framework/native_avmuxer.h"
 #include "SampleInfo.h"
-#include "dfx/error/AVCodecSampleError.h"
 #include "AVCodecSampleLog.h"
 
 class Muxer {
