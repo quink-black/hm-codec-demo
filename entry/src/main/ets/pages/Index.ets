@@ -23,7 +23,7 @@ import Logger from '../common/utils/Logger';
 import DateTimeUtil from '../common/utils/DateTimeUtils';
 import { CommonConstants as Const } from '../common/CommonConstants';
 import { CameraDataModel } from '../model/CameraDateModel';
-import { cameraCheck } from '../common/utils/CameraCheck';
+import { videoProfileCheck } from '../common/utils/CameraCheck';
 
 const TAG: string = Const.INDEX_TAG;
 const DATETIME: DateTimeUtil = new DateTimeUtil();
@@ -82,7 +82,7 @@ struct Player {
       Logger.error(TAG, 'camera.getCameraManager error!');
     }
 
-    let videoProfile: undefined | camera.VideoProfile = cameraCheck(cameraManager, this.cameraData);
+    let videoProfile: undefined | camera.VideoProfile = videoProfileCheck(cameraManager, this.cameraData);
     if (!videoProfile) {
       Logger.error(TAG, 'videoProfile is not found');
       promptAction.showToast({

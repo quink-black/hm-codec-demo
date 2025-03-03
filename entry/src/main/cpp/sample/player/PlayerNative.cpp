@@ -66,8 +66,10 @@ napi_value PlayerNative::Play(napi_env env, napi_callback_info info) {
 
     sampleInfo.playDoneCallback = &Callback;
     sampleInfo.playDoneCallbackData = asyncContext;
-    Player::GetInstance().Init(sampleInfo);
-    Player::GetInstance().Start();
+    int32_t ret = Player::GetInstance().Init(sampleInfo);
+    if (ret == AVCODEC_SAMPLE_ERR_OK) {
+        Player::GetInstance().Start();
+    }
     return nullptr;
 }
 

@@ -83,7 +83,7 @@ int32_t Player::CreateVideoDecoder() {
 }
 
 int32_t Player::Init(SampleInfo &sampleInfo) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
     CHECK_AND_RETURN_RET_LOG(!isStarted_, AVCODEC_SAMPLE_ERR_ERROR, "Already started.");
     CHECK_AND_RETURN_RET_LOG(demuxer_ == nullptr && videoDecoder_ == nullptr && audioDecoder_ == nullptr,
                              AVCODEC_SAMPLE_ERR_ERROR, "Already started.");
@@ -93,53 +93,69 @@ int32_t Player::Init(SampleInfo &sampleInfo) {
     videoDecoder_ = std::make_unique<VideoDecoder>();
     audioDecoder_ = std::make_unique<AudioDecoder>();
     demuxer_ = std::make_unique<Demuxer>();
-
-    int32_t ret = demuxer_->Create(sampleInfo_);
-    CHECK_AND_RETURN_RET_LOG(ret == AVCODEC_SAMPLE_ERR_OK, ret, "Create demuxer failed");
-
-    ret = CreateAudioDecoder();
-    CHECK_AND_RETURN_RET_LOG(ret == AVCODEC_SAMPLE_ERR_OK, ret, "Create audio decoder failed");
-
-    ret = CreateVideoDecoder();
-    CHECK_AND_RETURN_RET_LOG(ret == AVCODEC_SAMPLE_ERR_OK, ret, "Create video decoder failed");
-
     isReleased_ = false;
+    int32_t ret = demuxer_->Create(sampleInfo_);
+    if ( ret == AVCODEC_SAMPLE_ERR_OK) {
+        ret = CreateAudioDecoder();
+    } else {
+        AVCODEC_SAMPLE_LOGE("Create demuxer failed");
+    }
+    
+    if ( ret == AVCODEC_SAMPLE_ERR_OK) {
+        ret = CreateVideoDecoder();
+    } else {
+        AVCODEC_SAMPLE_LOGE("Create audio decoder failed");
+    }
+    
+    if (ret != AVCODEC_SAMPLE_ERR_OK) {
+        AVCODEC_SAMPLE_LOGE("Create video decoder failed");
+        doneCond_.notify_all();
+        lock.unlock();
+        StartRelease();
+        return AVCODEC_SAMPLE_ERR_ERROR;
+    }
     AVCODEC_SAMPLE_LOGI("Succeed");
     return AVCODEC_SAMPLE_ERR_OK;
 }
 
 int32_t Player::Start() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
     int32_t ret;
     CHECK_AND_RETURN_RET_LOG(!isStarted_, AVCODEC_SAMPLE_ERR_ERROR, "Already started.");
     CHECK_AND_RETURN_RET_LOG(demuxer_ != nullptr, AVCODEC_SAMPLE_ERR_ERROR, "Already started.");
     if (videoDecContext_) {
         ret = videoDecoder_->Start();
-        CHECK_AND_RETURN_RET_LOG(ret == AVCODEC_SAMPLE_ERR_OK, ret, "Video Decoder start failed");
+        if (ret != AVCODEC_SAMPLE_ERR_OK) {
+            AVCODEC_SAMPLE_LOGE("Video Decoder start failed");
+            lock.unlock();
+            StartRelease();
+            return AVCODEC_SAMPLE_ERR_ERROR;
+        }
         isStarted_ = true;
         videoDecInputThread_ = std::make_unique<std::thread>(&Player::VideoDecInputThread, this);
         videoDecOutputThread_ = std::make_unique<std::thread>(&Player::VideoDecOutputThread, this);
 
         if (videoDecInputThread_ == nullptr || videoDecOutputThread_ == nullptr) {
             AVCODEC_SAMPLE_LOGE("Create thread failed");
+            lock.unlock();
             StartRelease();
             return AVCODEC_SAMPLE_ERR_ERROR;
         }
     }
     if (audioDecContext_) {
         ret = audioDecoder_->Start();
-        CHECK_AND_RETURN_RET_LOG(ret == AVCODEC_SAMPLE_ERR_OK, ret, "Audio Decoder start failed");
+        if (ret != AVCODEC_SAMPLE_ERR_OK) {
+            AVCODEC_SAMPLE_LOGE("Audio Decoder start failed");
+            lock.unlock();
+            StartRelease();
+            return AVCODEC_SAMPLE_ERR_ERROR;
+        }
         isStarted_ = true;
         audioDecInputThread_ = std::make_unique<std::thread>(&Player::AudioDecInputThread, this);
         audioDecOutputThread_ = std::make_unique<std::thread>(&Player::AudioDecOutputThread, this);
-#ifdef DEBUG_DECODE
-        // for debug The decoded data is written to the sandbox address, and the physical address is
-        // /data/app/el2/100/base/com.example.avcodecsample/haps/entry/files/
-        audioOutputFile_.open("/data/storage/el2/base/haps/entry/files/audio_decode_out.pcm",
-                              std::ios::out | std::ios::binary);
-#endif
         if (audioDecInputThread_ == nullptr || audioDecOutputThread_ == nullptr) {
             AVCODEC_SAMPLE_LOGE("Create thread failed");
+            lock.unlock();
             StartRelease();
             return AVCODEC_SAMPLE_ERR_ERROR;
         }
@@ -157,6 +173,7 @@ int32_t Player::Start() {
 }
 
 void Player::StartRelease() {
+    AVCODEC_SAMPLE_LOGI("start release");
     if (audioRenderer_) {
         OH_AudioRenderer_Stop(audioRenderer_);
     }
@@ -197,11 +214,6 @@ void Player::Release() {
         OH_AudioRenderer_Release(audioRenderer_);
         audioRenderer_ = nullptr;
     }
-#ifdef DEBUG_DECODE
-    if (audioOutputFile_.is_open()) {
-        audioOutputFile_.close();
-    }
-#endif
     ReleaseThread();
 
     if (demuxer_ != nullptr) {

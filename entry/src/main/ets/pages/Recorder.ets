@@ -17,12 +17,13 @@ import { camera } from '@kit.CameraKit';
 import { fileIo } from '@kit.CoreFileKit';
 import { display, router } from '@kit.ArkUI';
 import { BusinessError } from '@kit.BasicServicesKit';
+import { colorSpaceManager } from '@kit.ArkGraphics2D';
 import recorder from 'librecorder.so';
 import Logger from '../common/utils/Logger';
 import { dateTime } from '../common/utils/DateTimeUtils';
 import { CommonConstants as Const } from '../common/CommonConstants';
 import { CameraDataModel } from '../model/CameraDateModel';
-import { cameraCheck } from '../common/utils/CameraCheck';
+import { previewProfileCameraCheck, videoProfileCheck } from '../common/utils/CameraCheck';
 
 const TAG: string = Const.RECORDER_TAG;
 
@@ -57,6 +58,58 @@ async function releaseCamera(): Promise<void> {
   Logger.info(TAG, 'encoderVideoOutput release');
   // Release session.
   videoSession.release();
+}
+
+function isVideoStabilizationModeSupported(session: camera.VideoSession, mode: camera.VideoStabilizationMode): boolean {
+  let isSupported: boolean = false;
+  try {
+    isSupported = session.isVideoStabilizationModeSupported(mode);
+  } catch (error) {
+    // Failed to return error code error. code and handle it.
+    let err = error as BusinessError;
+    Logger.error(TAG, `The isVideoStabilizationModeSupported call failed. error code: ${err.code}`);
+  }
+  return isSupported;
+}
+
+function setVideoStabilizationMode(session: camera.VideoSession): boolean {
+  let mode: camera.VideoStabilizationMode = camera.VideoStabilizationMode.AUTO;
+  // Check if video stabilization is supported.
+  let isSupported: boolean = isVideoStabilizationModeSupported(session, mode);
+  if (isSupported) {
+    Logger.info(TAG, `setVideoStabilizationMode: ${mode}`);
+    session.setVideoStabilizationMode(mode);
+    let activeVideoStabilizationMode = session.getActiveVideoStabilizationMode();
+    Logger.info(TAG, `activeVideoStabilizationMode: ${activeVideoStabilizationMode}`);
+  } else {
+    Logger.info(TAG, `videoStabilizationMode: ${mode} is not support`);
+  }
+  return isSupported;
+}
+
+function getSupportedColorSpaces(session: camera.VideoSession): Array<colorSpaceManager.ColorSpace> {
+  let colorSpaces: Array<colorSpaceManager.ColorSpace> = [];
+  try {
+    colorSpaces = session.getSupportedColorSpaces();
+  } catch (error) {
+    let err = error as BusinessError;
+    Logger.error(TAG, `The getSupportedColorSpaces call failed. error code: ${err.code}`);
+  }
+  return colorSpaces;
+}
+
+function setColorSpaceBeforeCommitConfig(session: camera.VideoSession, isHdr: number): void {
+  let colorSpace: colorSpaceManager.ColorSpace = isHdr? colorSpaceManager.ColorSpace.BT2020_HLG_LIMIT : colorSpaceManager.ColorSpace.BT709_LIMIT;
+  let colorSpaces: Array<colorSpaceManager.ColorSpace> = getSupportedColorSpaces(session);
+  let isSupportedColorSpaces = colorSpaces.indexOf(colorSpace) >= 0;
+  if (isSupportedColorSpaces) {
+    Logger.info(TAG, `setColorSpace: ${colorSpace}`);
+    session.setColorSpace(colorSpace);
+    let activeColorSpace:colorSpaceManager.ColorSpace = session.getActiveColorSpace();
+    Logger.info(TAG, `activeColorSpace: ${activeColorSpace}`);
+  } else {
+    Logger.info(TAG, `colorSpace: ${colorSpace} is not support`);
+  }
 }
 
 @Entry
@@ -130,20 +183,28 @@ struct Recorder {
       return;
     }
 
-    let videoProfile: undefined | camera.VideoProfile = cameraCheck(cameraManager, params);
+    // Get supported modes.
+    let sceneModes: Array<camera.SceneMode> = cameraManager.getSupportedSceneModes(cameraDevices[0]);
+    let isSupportVideoMode: boolean = sceneModes.indexOf(camera.SceneMode.NORMAL_VIDEO) >= 0;
+    if (!isSupportVideoMode) {
+      Logger.error('video mode not support');
+      return;
+    }
+
+    let videoProfile: undefined | camera.VideoProfile = videoProfileCheck(cameraManager, params);
     if (!videoProfile) {
       Logger.error(TAG, 'videoProfile is not found!');
       return;
     }
 
-    //The preview stream of XComponent.
-    let XComponentPreviewProfile: camera.Profile = params.previewProfile;
+    // The preview stream of XComponent.
+    let XComponentPreviewProfile: camera.Profile | undefined = previewProfileCameraCheck(cameraManager, params);
     if (XComponentPreviewProfile === undefined) {
       Logger.error(TAG, 'XComponentPreviewProfile is not found');
       return;
     }
 
-    //Create the encoder output object
+    // Create the encoder output object
     encoderVideoOutput = cameraManager.createVideoOutput(videoProfile, params.surfaceId);
     if (encoderVideoOutput === undefined) {
       Logger.error(TAG, 'encoderVideoOutput is undefined');
@@ -228,6 +289,12 @@ struct Recorder {
     } catch (error) {
       let err = error as BusinessError;
       Logger.error(TAG, `videoSession commitConfig error: ${JSON.stringify(err)}`);
+    }
+
+    // Set video stabilization.
+    if (setVideoStabilizationMode(videoSession)) {
+      // Set color space.
+      setColorSpaceBeforeCommitConfig(videoSession, params.isHDRVivid);
     }
 
     // Session start.
