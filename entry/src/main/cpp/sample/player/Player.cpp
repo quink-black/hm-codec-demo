@@ -53,11 +53,7 @@ int32_t Player::CreateAudioDecoder() {
                             sampleInfo_.audioChannelCount);
         OH_AudioRenderer_Callbacks callbacks;
         // Configure the callback function
-#ifndef DEBUG_DECODE
         callbacks.OH_AudioRenderer_OnWriteData = SampleCallback::OnRenderWriteData;
-#else
-        callbacks.OH_AudioRenderer_OnWriteData = nullptr;
-#endif
         callbacks.OH_AudioRenderer_OnStreamEvent = SampleCallback::OnRenderStreamEvent;
         callbacks.OH_AudioRenderer_OnInterruptEvent = SampleCallback::OnRenderInterruptEvent;
         callbacks.OH_AudioRenderer_OnError = SampleCallback::OnRenderError;
@@ -346,13 +342,6 @@ void Player::AudioDecOutputThread() {
         for (int i = 0; i < bufferInfo.attr.size; i++) {
             audioDecContext_->renderQueue.push(*(source + i));
         }
-#ifdef DEBUG_DECODE
-        if (audioOutputFile_.is_open()) {
-            audioOutputFile_.write(
-                (const char *)OH_AVBuffer_GetAddr(reinterpret_cast<OH_AVBuffer *>(bufferInfo.buffer)),
-                bufferInfo.attr.size);
-        }
-#endif
         lock.unlock();
 
         int32_t ret = audioDecoder_->FreeOutputBuffer(bufferInfo.bufferIndex, true);
