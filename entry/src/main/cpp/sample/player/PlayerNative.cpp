@@ -36,11 +36,11 @@ void Callback(void *asyncContext) {
         [](uv_work_t *work, int status) {
             CallbackContext *context = (CallbackContext *)work->data;
             napi_handle_scope scope = nullptr;
-            // 管理 napi_value 的生命周期，防止内存泄露
+            // Manage the lifecycle of napi_value to prevent memory leaks.
             napi_open_handle_scope(context->env, &scope);
             napi_value callback = nullptr;
             napi_get_reference_value(context->env, context->callbackRef, &callback);
-            // 回调至UI侧
+            // Callback to UI side.
             napi_call_function(context->env, nullptr, callback, 0, nullptr, nullptr);
             napi_close_handle_scope(context->env, scope);
             delete context;
@@ -66,8 +66,10 @@ napi_value PlayerNative::Play(napi_env env, napi_callback_info info) {
 
     sampleInfo.playDoneCallback = &Callback;
     sampleInfo.playDoneCallbackData = asyncContext;
-    Player::GetInstance().Init(sampleInfo);
-    Player::GetInstance().Start();
+    int32_t ret = Player::GetInstance().Init(sampleInfo);
+    if (ret == AVCODEC_SAMPLE_ERR_OK) {
+        Player::GetInstance().Start();
+    }
     return nullptr;
 }
 

@@ -19,7 +19,6 @@
 #include "multimedia/player_framework/native_avcodec_audiocodec.h"
 #include "multimedia/player_framework/native_avbuffer_info.h"
 #include "SampleCallback.h"
-#include "dfx/error/AVCodecSampleError.h"
 #include "AVCodecSampleLog.h"
 
 class AudioDecoder {
