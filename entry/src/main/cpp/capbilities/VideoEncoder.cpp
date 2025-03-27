@@ -18,26 +18,6 @@
 #undef LOG_TAG
 #define LOG_TAG "VideoEncoder"
 
-namespace {
-
-int32_t ToGraphicPixelFormat(int32_t avPixelFormat, bool isHDRVivid)
-{
-    if (isHDRVivid) {
-        return NATIVEBUFFER_PIXEL_FMT_YCBCR_P010;
-    }
-    switch (avPixelFormat) {
-        case AV_PIXEL_FORMAT_RGBA:
-            return NATIVEBUFFER_PIXEL_FMT_RGBA_8888;
-        case AV_PIXEL_FORMAT_YUVI420:
-            return NATIVEBUFFER_PIXEL_FMT_YCBCR_420_P;
-        case AV_PIXEL_FORMAT_NV21:
-            return NATIVEBUFFER_PIXEL_FMT_YCRCB_420_SP;
-        default: // NV12 and others
-            return NATIVEBUFFER_PIXEL_FMT_YCRCB_420_SP;
-    }
-}
-} // namespace
-
 VideoEncoder::~VideoEncoder()
 {
     Release();
@@ -175,18 +155,5 @@ int32_t VideoEncoder::GetSurface(SampleInfo &sampleInfo)
     int32_t ret = OH_VideoEncoder_GetSurface(encoder_, &sampleInfo.window);
     CHECK_AND_RETURN_RET_LOG(ret == AV_ERR_OK && sampleInfo.window, AVCODEC_SAMPLE_ERR_ERROR,
         "Get surface failed, ret: %{public}d", ret);
-    (void)OH_NativeWindow_NativeWindowHandleOpt(sampleInfo.window, SET_BUFFER_GEOMETRY, sampleInfo.videoWidth,
-                                                sampleInfo.videoHeight);
-    (void)OH_NativeWindow_NativeWindowHandleOpt(sampleInfo.window, SET_USAGE, 16425); // 16425: Window usage
-    (void)OH_NativeWindow_NativeWindowHandleOpt(sampleInfo.window, SET_FORMAT,
-        ToGraphicPixelFormat(sampleInfo.pixelFormat, sampleInfo.isHDRVivid));
-    if(sampleInfo.isHDRVivid) {
-        uint8_t metadataType = OH_VIDEO_HDR_HLG;
-        (void)OH_NativeWindow_SetMetadataValue(sampleInfo.window, OH_HDR_METADATA_TYPE, sizeof(uint8_t), &metadataType);
-        (void)OH_NativeWindow_NativeWindowHandleOpt(sampleInfo.window, SET_COLOR_GAMUT,
-            NATIVEBUFFER_COLOR_GAMUT_BT2020);
-        OH_NativeBuffer_ColorSpace colorSpace = OH_COLORSPACE_BT2020_HLG_LIMIT;
-        (void)OH_NativeWindow_SetColorSpace(sampleInfo.window, colorSpace);
-    }
     return AVCODEC_SAMPLE_ERR_OK;
 }

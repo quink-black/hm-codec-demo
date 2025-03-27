@@ -20,7 +20,6 @@
 
 namespace {
 constexpr int LIMIT_LOGD_FREQUENCY = 50;
-constexpr int ROTATION_ANGLE = 90;
 } // namespace
 
 VideoDecoder::~VideoDecoder()
@@ -55,9 +54,7 @@ int32_t VideoDecoder::Configure(const SampleInfo &sampleInfo)
     OH_AVFormat_SetIntValue(format, OH_MD_KEY_HEIGHT, sampleInfo.videoHeight);
     OH_AVFormat_SetDoubleValue(format, OH_MD_KEY_FRAME_RATE, sampleInfo.frameRate);
     OH_AVFormat_SetIntValue(format, OH_MD_KEY_PIXEL_FORMAT, sampleInfo.pixelFormat);
-    if (sampleInfo.videoHeight > sampleInfo.videoWidth) {
-        OH_AVFormat_SetIntValue(format, OH_MD_KEY_ROTATION, sampleInfo.rotation + ROTATION_ANGLE);
-    }
+    OH_AVFormat_SetIntValue(format, OH_MD_KEY_ROTATION, sampleInfo.rotation);
 
     AVCODEC_SAMPLE_LOGI("====== VideoDecoder config ======");
     AVCODEC_SAMPLE_LOGI("%{public}d*%{public}d, %{public}.1ffps", sampleInfo.videoWidth, sampleInfo.videoHeight,

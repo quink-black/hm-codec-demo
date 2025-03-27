@@ -54,6 +54,7 @@ void OnSurfaceCreatedCB(OH_NativeXComponent *component, void *window) {
         if (render->eglCore_->EglContextInit(window, width, height)) {
             auto context = PluginManager::GetInstance();
             context->pluginWindow_ = (OHNativeWindow *)window;
+            OH_NativeWindow_NativeWindowSetScalingModeV2(context->pluginWindow_, OH_SCALING_MODE_SCALE_FIT_V2);
         }
     }
 }
