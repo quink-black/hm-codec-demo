@@ -1,7 +1,8 @@
 # 基于AVCodec能力的视频编解码
 
 ### 介绍
-本实例基于AVCodec能力，提供基于视频编解码的视频播放和录制的功能。
+本实例基于AVCodec能力，实现了基于视频编解码的视频播放和录制的功能。通过调用Native侧的编码器，解码器，以及封装和解封装功能，完成从相机录制流到mp4文件的转换，以及对封装好的视频进行解封装，并解码送显。基于本示例可帮助应用开发需要编解码进行视频播放和录制的场景。
+
 - 视频播放的主要流程是将视频文件通过解封装->解码->送显/播放。
 - 视频录制的主要流程是相机采集->编码->封装成mp4文件。
 
@@ -157,8 +158,8 @@
 
 1. 本示例仅支持标准系统上运行，支持设备：华为手机;
 
-2. HarmonyOS系统：HarmonyOS NEXT Beta1及以上;
+2. HarmonyOS系统：HarmonyOS 5.0.0 Release及以上;
 
-3. DevEco Studio版本：DevEco Studio NEXT Beta1及以上;
+3. DevEco Studio版本：DevEco Studio 5.0.0 Release及以上;
 
-4. HarmonyOS SDK版本：HarmonyOS NEXT Bata1 SDK及以上。    
+4. HarmonyOS SDK版本：HarmonyOS 5.0.0 Release SDK及以上。    

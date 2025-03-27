@@ -14,6 +14,7 @@
  */
 
 #include "AudioDecoder.h"
+#include "dfx/error/AVCodecSampleError.h"
 
 #undef LOG_TAG
 #define LOG_TAG "AudioDecoder"
@@ -49,10 +50,9 @@ int32_t AudioDecoder::Configure(const SampleInfo &sampleInfo) {
 
     int ret = OH_AudioCodec_Configure(decoder_, format);
     AVCODEC_SAMPLE_LOGI("====== AudioDecoder config ======");
-    CHECK_AND_RETURN_RET_LOG(ret == AV_ERR_OK, AVCODEC_SAMPLE_ERR_ERROR, "Config failed, ret: %{public}d", ret);
     OH_AVFormat_Destroy(format);
     format = nullptr;
-
+    CHECK_AND_RETURN_RET_LOG(ret == AV_ERR_OK, AVCODEC_SAMPLE_ERR_ERROR, "Config failed, ret: %{public}d", ret);
     return AVCODEC_SAMPLE_ERR_OK;
 }
 

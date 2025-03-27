@@ -14,6 +14,7 @@
  */
 
 #include "Muxer.h"
+#include "dfx/error/AVCodecSampleError.h"
 
 #undef LOG_TAG
 #define LOG_TAG "Muxer"
@@ -55,10 +56,11 @@ int32_t Muxer::Config(SampleInfo &sampleInfo)
         OH_AVFormat_SetIntValue(formatVideo, OH_MD_KEY_MATRIX_COEFFICIENTS, sampleInfo.matrix);
     }
     
-    int32_t ret = OH_AVMuxer_AddTrack(muxer_, &videoTrackId_, formatVideo);
-    CHECK_AND_RETURN_RET_LOG(ret == AV_ERR_OK, AVCODEC_SAMPLE_ERR_ERROR, "AddTrack failed");
+    int32_t ret = OH_AVMuxer_AddTrack(muxer_, &videoTrackId_, formatVideo); 
     OH_AVFormat_Destroy(formatVideo);
+    formatVideo = nullptr;
     OH_AVMuxer_SetRotation(muxer_, sampleInfo.videoHeight > sampleInfo.videoWidth ? VERTICAL_ANGLE : HORIZONTAL_ANGLE);
+    CHECK_AND_RETURN_RET_LOG(ret == AV_ERR_OK, AVCODEC_SAMPLE_ERR_ERROR, "AddTrack failed");
     return AVCODEC_SAMPLE_ERR_OK;
 }
 

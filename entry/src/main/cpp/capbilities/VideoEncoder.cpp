@@ -164,9 +164,9 @@ int32_t VideoEncoder::Configure(const SampleInfo &sampleInfo)
     AVCODEC_SAMPLE_LOGI("====== VideoEncoder config ======");
 
     int ret = OH_VideoEncoder_Configure(encoder_, format);
-    CHECK_AND_RETURN_RET_LOG(ret == AV_ERR_OK, AVCODEC_SAMPLE_ERR_ERROR, "Config failed, ret: %{public}d", ret);
     OH_AVFormat_Destroy(format);
     format = nullptr;
+    CHECK_AND_RETURN_RET_LOG(ret == AV_ERR_OK, AVCODEC_SAMPLE_ERR_ERROR, "Config failed, ret: %{public}d", ret);
     return AVCODEC_SAMPLE_ERR_OK;
 }
 
@@ -183,7 +183,8 @@ int32_t VideoEncoder::GetSurface(SampleInfo &sampleInfo)
     if(sampleInfo.isHDRVivid) {
         uint8_t metadataType = OH_VIDEO_HDR_HLG;
         (void)OH_NativeWindow_SetMetadataValue(sampleInfo.window, OH_HDR_METADATA_TYPE, sizeof(uint8_t), &metadataType);
-        (void)OH_NativeWindow_NativeWindowHandleOpt(sampleInfo.window, SET_COLOR_GAMUT, NATIVEBUFFER_COLOR_GAMUT_BT2020);
+        (void)OH_NativeWindow_NativeWindowHandleOpt(sampleInfo.window, SET_COLOR_GAMUT,
+            NATIVEBUFFER_COLOR_GAMUT_BT2020);
         OH_NativeBuffer_ColorSpace colorSpace = OH_COLORSPACE_BT2020_HLG_LIMIT;
         (void)OH_NativeWindow_SetColorSpace(sampleInfo.window, colorSpace);
     }

@@ -73,9 +73,6 @@ private:
     CodecUserData *audioDecContext_ = nullptr;
     OH_AudioStreamBuilder *builder_ = nullptr;
     OH_AudioRenderer *audioRenderer_ = nullptr;
-#ifdef DEBUG_DECODE
-    std::ofstream audioOutputFile_; // for debug
-#endif
     static constexpr int64_t MICROSECOND = 1000000;
 };
 

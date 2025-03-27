@@ -20,16 +20,18 @@ import { CommonConstants as Const } from '../CommonConstants';
 
 const TAG = 'CAMERA_CHECK';
 
-function getPreviewProfile(previewProfiles: Array<camera.Profile>, size: camera.Size, isHDRVivid: number): undefined | camera.Profile {
+function getPreviewProfile(previewProfiles: Array<camera.Profile>,
+  size: camera.Size, isHDRVivid: number): undefined | camera.Profile {
   let previewProfile: undefined | camera.Profile = previewProfiles.find((profile: camera.Profile) => {
     if(isHDRVivid) {
       return profile.format === camera.CameraFormat.CAMERA_FORMAT_YCRCB_P010 &&
         profile.size.width === size.width && profile.size.height == size.height
     } else {
-    return profile.format === camera.CameraFormat.CAMERA_FORMAT_YUV_420_SP &&
-      profile.size.width === size.width && profile.size.height == size.height
+      return profile.format === camera.CameraFormat.CAMERA_FORMAT_YUV_420_SP &&
+        profile.size.width === size.width && profile.size.height == size.height
     }
   });
+  Logger.error(TAG, `profile.format: ${previewProfile!.size.width}`);
   return previewProfile;
 }
 
@@ -50,7 +52,7 @@ export function previewProfileCameraCheck(cameraManager: camera.CameraManager,
 
   let previewProfilesArray: Array<camera.Profile> = profiles.previewProfiles;
   if (!previewProfilesArray) {
-    Logger.error("createOutput previewProfilesArray == null || undefined");
+    Logger.error(TAG, "createOutput previewProfilesArray == null || undefined");
     return;
   }
 
@@ -58,9 +60,11 @@ export function previewProfileCameraCheck(cameraManager: camera.CameraManager,
     width: 1920,
     height: 1080
   }
-  let previewProfile: undefined | camera.Profile = getPreviewProfile(previewProfilesArray, videoSize, cameraData.isHDRVivid);
+
+  let previewProfile: undefined | camera.Profile = getPreviewProfile(previewProfilesArray, videoSize,
+      cameraData.isHDRVivid);
   if (!previewProfile) {
-    Logger.error('previewProfile is not found');
+    Logger.error(TAG, 'previewProfile is not found');
     return;
   }
   return previewProfile;
