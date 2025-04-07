@@ -20,8 +20,7 @@
 #define LOG_TAG "Muxer"
 
 namespace {
-constexpr int32_t VERTICAL_ANGLE = 90;
-constexpr int32_t HORIZONTAL_ANGLE = 0;
+constexpr int32_t CAMERA_ANGLE = 90;
 }
 
 Muxer::~Muxer()
@@ -59,7 +58,7 @@ int32_t Muxer::Config(SampleInfo &sampleInfo)
     int32_t ret = OH_AVMuxer_AddTrack(muxer_, &videoTrackId_, formatVideo); 
     OH_AVFormat_Destroy(formatVideo);
     formatVideo = nullptr;
-    OH_AVMuxer_SetRotation(muxer_, sampleInfo.videoHeight > sampleInfo.videoWidth ? VERTICAL_ANGLE : HORIZONTAL_ANGLE);
+    OH_AVMuxer_SetRotation(muxer_, CAMERA_ANGLE);
     CHECK_AND_RETURN_RET_LOG(ret == AV_ERR_OK, AVCODEC_SAMPLE_ERR_ERROR, "AddTrack failed");
     return AVCODEC_SAMPLE_ERR_OK;
 }
