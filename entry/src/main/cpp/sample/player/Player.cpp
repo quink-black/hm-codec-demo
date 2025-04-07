@@ -48,7 +48,7 @@ int32_t Player::CreateAudioDecoder() {
         // Sets the encoding type of the audio stream
         OH_AudioStreamBuilder_SetEncodingType(builder_, AUDIOSTREAM_ENCODING_TYPE_RAW);
         // Set the working scenario for the output audio stream
-        OH_AudioStreamBuilder_SetRendererInfo(builder_, AUDIOSTREAM_USAGE_MUSIC);
+        OH_AudioStreamBuilder_SetRendererInfo(builder_, AUDIOSTREAM_USAGE_MOVIE);
         AVCODEC_SAMPLE_LOGW("Init audioSampleRate: %{public}d, ChannelCount: %{public}d", sampleInfo_.audioSampleRate,
                             sampleInfo_.audioChannelCount);
         OH_AudioRenderer_Callbacks callbacks;
