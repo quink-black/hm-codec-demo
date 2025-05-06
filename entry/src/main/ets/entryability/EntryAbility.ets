@@ -50,6 +50,7 @@ export default class EntryAbility extends UIAbility {
         hilog.error(0x0000, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err) ?? '');
         return;
       }
+      AppStorage.setOrCreate("context", windowStage.getMainWindowSync().getUIContext());
       hilog.info(0x0000, 'testTag', 'Succeeded in loading the content.');
     });
   }
