@@ -201,11 +201,7 @@ void Player::ReleaseThread() {
 void Player::Release() {
     std::lock_guard<std::mutex> lock(mutex_);
     isStarted_ = false;
-
-    // Clear the queue
-    while (audioDecContext_ && !audioDecContext_->renderQueue.empty()) {
-        audioDecContext_->renderQueue.pop();
-    }
+    
     if (audioRenderer_ != nullptr) {
         OH_AudioRenderer_Release(audioRenderer_);
         audioRenderer_ = nullptr;
@@ -237,6 +233,10 @@ void Player::Release() {
     doneCond_.notify_all();
     // Trigger the callback
     sampleInfo_.playDoneCallback(sampleInfo_.playDoneCallbackData);
+    // Clear the queue
+    while (audioDecContext_ && !audioDecContext_->renderQueue.empty()) {
+        audioDecContext_->renderQueue.pop();
+    }
     AVCODEC_SAMPLE_LOGI("Succeed");
 }
 
@@ -352,6 +352,10 @@ void Player::AudioDecOutputThread() {
             return audioDecContext_->renderQueue.size() < BALANCE_VALUE * bufferInfo.attr.size;
         });
     }
+    std::unique_lock<std::mutex> lockRender(audioDecContext_->renderMutex);
+    audioDecContext_->renderCond.wait_for(lockRender, 500ms, [this](){
+        return audioDecContext_->renderQueue.size() < 1;
+    });
     AVCODEC_SAMPLE_LOGI("Out buffer end");
     StartRelease();
 }
