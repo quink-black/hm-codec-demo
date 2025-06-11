@@ -23,24 +23,21 @@ namespace {
 constexpr int32_t CAMERA_ANGLE = 90;
 }
 
-Muxer::~Muxer()
-{
-    Release();
-}
+Muxer::~Muxer() { Release(); }
 
-int32_t Muxer::Create(int32_t fd)
-{
+// [Start format_path]
+// Create an encapsulator instance object and set the encapsulation format to mp4
+int32_t Muxer::Create(int32_t fd) {
     muxer_ = OH_AVMuxer_Create(fd, AV_OUTPUT_FORMAT_MPEG_4);
     CHECK_AND_RETURN_RET_LOG(muxer_ != nullptr, AVCODEC_SAMPLE_ERR_ERROR, "Muxer create failed, fd: %{public}d", fd);
     return AVCODEC_SAMPLE_ERR_OK;
 }
 
-int32_t Muxer::Config(SampleInfo &sampleInfo)
-{
+int32_t Muxer::Config(SampleInfo &sampleInfo) {
     CHECK_AND_RETURN_RET_LOG(muxer_ != nullptr, AVCODEC_SAMPLE_ERR_ERROR, "Muxer is null");
 
-    OH_AVFormat *formatVideo = OH_AVFormat_CreateVideoFormat(sampleInfo.videoCodecMime.data(),
-        sampleInfo.videoWidth, sampleInfo.videoHeight);
+    OH_AVFormat *formatVideo =
+        OH_AVFormat_CreateVideoFormat(sampleInfo.videoCodecMime.data(), sampleInfo.videoWidth, sampleInfo.videoHeight);
     CHECK_AND_RETURN_RET_LOG(formatVideo != nullptr, AVCODEC_SAMPLE_ERR_ERROR, "Create video format failed");
 
     OH_AVFormat_SetDoubleValue(formatVideo, OH_MD_KEY_FRAME_RATE, sampleInfo.frameRate);
@@ -54,17 +51,17 @@ int32_t Muxer::Config(SampleInfo &sampleInfo)
         OH_AVFormat_SetIntValue(formatVideo, OH_MD_KEY_TRANSFER_CHARACTERISTICS, sampleInfo.transfer);
         OH_AVFormat_SetIntValue(formatVideo, OH_MD_KEY_MATRIX_COEFFICIENTS, sampleInfo.matrix);
     }
-    
-    int32_t ret = OH_AVMuxer_AddTrack(muxer_, &videoTrackId_, formatVideo); 
+
+    int32_t ret = OH_AVMuxer_AddTrack(muxer_, &videoTrackId_, formatVideo);
     OH_AVFormat_Destroy(formatVideo);
     formatVideo = nullptr;
     OH_AVMuxer_SetRotation(muxer_, CAMERA_ANGLE);
     CHECK_AND_RETURN_RET_LOG(ret == AV_ERR_OK, AVCODEC_SAMPLE_ERR_ERROR, "AddTrack failed");
     return AVCODEC_SAMPLE_ERR_OK;
 }
+// [End format_path]
 
-int32_t Muxer::Start()
-{
+int32_t Muxer::Start() {
     CHECK_AND_RETURN_RET_LOG(muxer_ != nullptr, AVCODEC_SAMPLE_ERR_ERROR, "Muxer is null");
 
     int ret = OH_AVMuxer_Start(muxer_);
@@ -72,11 +69,10 @@ int32_t Muxer::Start()
     return AVCODEC_SAMPLE_ERR_OK;
 }
 
-int32_t Muxer::WriteSample(OH_AVBuffer *buffer, OH_AVCodecBufferAttr &attr)
-{
+int32_t Muxer::WriteSample(OH_AVBuffer *buffer, OH_AVCodecBufferAttr &attr) {
     CHECK_AND_RETURN_RET_LOG(muxer_ != nullptr, AVCODEC_SAMPLE_ERR_ERROR, "Muxer is null");
     CHECK_AND_RETURN_RET_LOG(buffer != nullptr, AVCODEC_SAMPLE_ERR_ERROR, "Get a empty buffer");
-    
+
     int32_t ret = OH_AVBuffer_SetBufferAttr(buffer, &attr);
     CHECK_AND_RETURN_RET_LOG(ret == AV_ERR_OK, AVCODEC_SAMPLE_ERR_ERROR, "SetBufferAttr failed");
 
@@ -85,8 +81,7 @@ int32_t Muxer::WriteSample(OH_AVBuffer *buffer, OH_AVCodecBufferAttr &attr)
     return AVCODEC_SAMPLE_ERR_OK;
 }
 
-int32_t Muxer::Release()
-{
+int32_t Muxer::Release() {
     if (muxer_ != nullptr) {
         OH_AVMuxer_Destroy(muxer_);
         muxer_ = nullptr;

@@ -60,6 +60,7 @@ async function releaseCamera(): Promise<void> {
   videoSession.release();
 }
 
+// [Start set_video_color]
 function isVideoStabilizationModeSupported(session: camera.VideoSession, mode: camera.VideoStabilizationMode): boolean {
   let isSupported: boolean = false;
   try {
@@ -78,6 +79,7 @@ function setVideoStabilizationMode(session: camera.VideoSession): boolean {
   let isSupported: boolean = isVideoStabilizationModeSupported(session, mode);
   if (isSupported) {
     Logger.info(TAG, `setVideoStabilizationMode: ${mode}`);
+    // Setting video anti-shake
     session.setVideoStabilizationMode(mode);
     let activeVideoStabilizationMode = session.getActiveVideoStabilizationMode();
     Logger.info(TAG, `activeVideoStabilizationMode: ${activeVideoStabilizationMode}`);
@@ -98,6 +100,7 @@ function getSupportedColorSpaces(session: camera.VideoSession): Array<colorSpace
   return colorSpaces;
 }
 
+// Set the color space
 function setColorSpaceBeforeCommitConfig(session: camera.VideoSession, isHdr: number): void {
   let colorSpace: colorSpaceManager.ColorSpace = isHdr? colorSpaceManager.ColorSpace.BT2020_HLG_LIMIT : colorSpaceManager.ColorSpace.BT709_LIMIT;
   let colorSpaces: Array<colorSpaceManager.ColorSpace> = getSupportedColorSpaces(session);
@@ -111,6 +114,7 @@ function setColorSpaceBeforeCommitConfig(session: camera.VideoSession, isHdr: nu
     Logger.info(TAG, `colorSpace: ${colorSpace} is not support`);
   }
 }
+// [End set_video_color]
 
 @Entry
 @Component
@@ -191,18 +195,23 @@ struct Recorder {
       return;
     }
 
+    // [Start create_video_output3]
     let videoProfile: undefined | camera.VideoProfile = videoProfileCheck(cameraManager, params);
     if (!videoProfile) {
       Logger.error(TAG, 'videoProfile is not found!');
       return;
     }
 
-    // The preview stream of XComponent.
+    // [StartExclude create_video_output3]
+    //The preview stream of XComponent.
+    // [Start camera_conversation]
     let XComponentPreviewProfile: camera.Profile | undefined = previewProfileCameraCheck(cameraManager, params);
     if (XComponentPreviewProfile === undefined) {
       Logger.error(TAG, 'XComponentPreviewProfile is not found');
       return;
     }
+    // [StartExclude camera_conversation]
+    // [EndExclude create_video_output3]
 
     // Create the encoder output object
     encoderVideoOutput = cameraManager.createVideoOutput(videoProfile, params.surfaceId);
@@ -211,6 +220,7 @@ struct Recorder {
       return;
     }
     Logger.info(TAG, 'encoderVideoOutput  success');
+    // [End create_video_output3]
 
     // Create a preview stream output object
     XComponentPreviewOutput = cameraManager.createPreviewOutput(XComponentPreviewProfile, this.XComponentSurfaceId);
@@ -238,57 +248,71 @@ struct Recorder {
       let err = error as BusinessError;
       Logger.error(TAG, `Failed to open cameraInput. error: ${JSON.stringify(err)}`);
     }
+    // [EndExclude camera_conversation]
 
-    // Session flow.
+    // Create a session flow
     try {
       videoSession = cameraManager.createSession(camera.SceneMode.NORMAL_VIDEO) as camera.VideoSession;
     } catch (error) {
       let err = error as BusinessError;
       Logger.error(TAG, `Failed to create the session instance. error: ${JSON.stringify(err)}`);
     }
+    // [StartExclude camera_conversation]
     if (videoSession === undefined) {
       Logger.error(TAG, 'videoSession is undefined');
       return;
     }
+    // [EndExclude camera_conversation]
 
     // Start Configuring the session.
     try {
       videoSession.beginConfig();
     } catch (error) {
+      // [StartExclude camera_conversation]
       let err = error as BusinessError;
       Logger.error(TAG, `Failed to beginConfig. error: ${JSON.stringify(err)}`);
+      // [EndExclude camera_conversation]
     }
+    // [StartExclude camera_conversation]
 
     // Add CameraInput to the session.
     try {
       videoSession.addInput(cameraInput);
     } catch (error) {
+      // DocsDot
       let err = error as BusinessError;
       Logger.error(TAG, `Failed to add cameraInput. error: ${JSON.stringify(err)}`);
+      // DocsDot
     }
-
+    // [EndExclude camera_conversation]
     // Add the XComponent preview stream to the session.
     try {
       videoSession.addOutput(XComponentPreviewOutput);
     } catch (error) {
+      // [StartExclude camera_conversation]
       let err = error as BusinessError;
       Logger.error(TAG, `Failed to add XcomponentPreviewOutput. error: ${JSON.stringify(err)}`);
+      // [EndExclude camera_conversation]
     }
 
     // Add the encoder video stream to the session.
     try {
       videoSession.addOutput(encoderVideoOutput);
     } catch (error) {
+      // [StartExclude camera_conversation]
       let err = error as BusinessError;
       Logger.error(TAG, `Failed to add encoderVideoOutput. error: ${JSON.stringify(err)}`);
+      // [EndExclude camera_conversation]
     }
 
     // Submit configuration information.
     try {
       await videoSession.commitConfig();
     } catch (error) {
+      // [StartExclude camera_conversation]
       let err = error as BusinessError;
       Logger.error(TAG, `videoSession commitConfig error: ${JSON.stringify(err)}`);
+      // [EndExclude camera_conversation]
     }
 
     // Set video stabilization.
@@ -301,18 +325,23 @@ struct Recorder {
     try {
       await videoSession.start();
     } catch (error) {
+      // [StartExclude camera_conversation]
       let err = error as BusinessError;
       Logger.error(TAG, `videoSession start error: ${JSON.stringify(err)}`);
+      // [EndExclude camera_conversation]
     }
 
     // Start the video output stream
     encoderVideoOutput.start((err: BusinessError) => {
+      // [StartExclude camera_conversation]
       if (err) {
         Logger.error(TAG, `Failed to start the encoder video output. error: ${JSON.stringify(err)}`);
         return;
       }
       Logger.info(TAG, 'Callback invoked to indicate the encoder video output start success.');
+      // [EndExclude camera_conversation]
     });
+    // [End camera_conversation]
   }
 
   build() {
