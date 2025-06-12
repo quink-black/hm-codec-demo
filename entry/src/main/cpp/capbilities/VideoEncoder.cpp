@@ -115,6 +115,7 @@ int32_t VideoEncoder::SetCallback(CodecUserData *codecUserData) {
 // Camera+AVCodec
 // [Start camera_AVCodec]
 int32_t VideoEncoder::Configure(const SampleInfo &sampleInfo) {
+    // [StartExclude camera_AVCodec]
     OH_AVFormat *format = OH_AVFormat_Create();
     CHECK_AND_RETURN_RET_LOG(format != nullptr, AVCODEC_SAMPLE_ERR_ERROR, "AVFormat create failed");
 
