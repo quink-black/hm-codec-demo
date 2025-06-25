@@ -16,30 +16,28 @@
 #ifndef VIDEODECODER_H
 #define VIDEODECODER_H
 
-#include "multimedia/player_framework/native_avcodec_videodecoder.h"
-#include "multimedia/player_framework/native_avbuffer_info.h"
+#include "AVCodecSampleLog.h"
 #include "SampleInfo.h"
 #include "SampleCallback.h"
-#include "dfx/error/AVCodecSampleError.h"
-#include "AVCodecSampleLog.h"
 
-class VideoDecoder {
-public:
-    VideoDecoder() = default;
-    ~VideoDecoder();
-
-    int32_t Create(const std::string &videoCodecMime);
-    int32_t Config(const SampleInfo &sampleInfo, CodecUserData *codecUserData);
-    int32_t PushInputBuffer(CodecBufferInfo &info);
-    int32_t FreeOutputBuffer(uint32_t bufferIndex, bool render);
-    int32_t Start();
-    int32_t Release();
-
-private:
-    int32_t SetCallback(CodecUserData *codecUserData);
-    int32_t Configure(const SampleInfo &sampleInfo);
-
-    bool isAVBufferMode_ = false;
-    OH_AVCodec *decoder_;
+enum class DecoderBackend {
+    HM = 0,
+    FFmpeg = 1,
+    FFmpeg_HW = 2,
 };
+
+class IVideoDecoder {
+ public:
+    static std::unique_ptr<IVideoDecoder> Create(DecoderBackend type);
+    
+    virtual ~IVideoDecoder() = default;
+
+    virtual int32_t Create(const std::string &videoCodecMime) = 0;
+    virtual int32_t Config(const SampleInfo &sampleInfo, CodecUserData *codecUserData) = 0;
+    virtual int32_t PushInputBuffer(CodecBufferInfo &info) = 0;
+    virtual int32_t FreeOutputBuffer(uint32_t bufferIndex, bool render) = 0;
+    virtual int32_t Start() = 0;
+    virtual int32_t Release() = 0;
+};
+
 #endif // VIDEODECODER_H

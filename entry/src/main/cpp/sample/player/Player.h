@@ -56,7 +56,7 @@ private:
     int32_t CreateAudioDecoder();
     int32_t CreateVideoDecoder();
 
-    std::unique_ptr<VideoDecoder> videoDecoder_ = nullptr;
+    std::unique_ptr<IVideoDecoder> videoDecoder_ = nullptr;
     std::shared_ptr<AudioDecoder> audioDecoder_ = nullptr;
     std::unique_ptr<Demuxer> demuxer_ = nullptr;
 

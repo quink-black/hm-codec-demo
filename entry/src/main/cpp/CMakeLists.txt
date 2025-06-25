@@ -20,9 +20,16 @@ set(BASE_LIBRARY
     libnative_media_venc.so libnative_media_acodec.so libnative_media_avdemuxer.so libnative_media_avsource.so libnative_media_avmuxer.so
     libohaudio.so
 )
+
+set(ffmpeg_prefix ${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg)
+include_directories(${ffmpeg_prefix}/include)
+link_directories(${ffmpeg_prefix}/lib)
+
 add_library(player SHARED sample/player/PlayerNative.cpp
                           sample/player/Player.cpp
                           capbilities/Demuxer.cpp
+                          capbilities/FFVideoDecoder.cpp
+                          capbilities/HMVideoDecoder.cpp
                           capbilities/VideoDecoder.cpp
                           capbilities/AudioDecoder.cpp
                           render/EglCore.cpp
@@ -30,6 +37,8 @@ add_library(player SHARED sample/player/PlayerNative.cpp
                           render/PluginManager.cpp
                           common/SampleCallback.cpp
 )
+target_link_libraries(player PUBLIC avcodec swresample swscale avutil z native_buffer)
+target_link_options(player PUBLIC -Wl,-Bsymbolic)
 
 add_library(recorder SHARED sample/recorder/RecorderNative.cpp
                             sample/recorder/Recorder.cpp

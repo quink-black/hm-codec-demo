@@ -86,7 +86,7 @@ int32_t Player::Init(SampleInfo &sampleInfo) {
 
     sampleInfo_ = sampleInfo;
 
-    videoDecoder_ = std::make_unique<VideoDecoder>();
+    videoDecoder_ = IVideoDecoder::Create(DecoderBackend::FFmpeg);
     audioDecoder_ = std::make_unique<AudioDecoder>();
     demuxer_ = std::make_unique<Demuxer>();
     isReleased_ = false;
