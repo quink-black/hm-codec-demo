@@ -38,6 +38,7 @@ class IVideoDecoder {
     virtual int32_t FreeOutputBuffer(uint32_t bufferIndex, bool render) = 0;
     virtual int32_t Start() = 0;
     virtual int32_t Release() = 0;
+    virtual void Flush() {}
 };
 
 #endif // VIDEODECODER_H

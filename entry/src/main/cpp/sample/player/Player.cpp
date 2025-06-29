@@ -86,7 +86,7 @@ int32_t Player::Init(SampleInfo &sampleInfo) {
 
     sampleInfo_ = sampleInfo;
 
-    videoDecoder_ = IVideoDecoder::Create(DecoderBackend::FFmpeg);
+    videoDecoder_ = IVideoDecoder::Create(DecoderBackend::FFmpeg_HW);
     audioDecoder_ = std::make_unique<AudioDecoder>();
     demuxer_ = std::make_unique<Demuxer>();
     isReleased_ = false;
@@ -241,6 +241,7 @@ void Player::Release() {
 }
 
 void Player::VideoDecInputThread() {
+    bool test_flush = false;
     while (true) {
         CHECK_AND_BREAK_LOG(isStarted_, "Decoder input thread out");
         std::unique_lock<std::mutex> lock(videoDecContext_->inputMutex);
@@ -257,6 +258,11 @@ void Player::VideoDecInputThread() {
 
         demuxer_->ReadSample(demuxer_->GetVideoTrackId(), reinterpret_cast<OH_AVBuffer *>(bufferInfo.buffer),
                              bufferInfo.attr);
+
+        if (test_flush && bufferInfo.attr.pts > 2000000) {
+            test_flush = false;
+            videoDecoder_->Flush();
+        }
 
         int32_t ret = videoDecoder_->PushInputBuffer(bufferInfo);
         CHECK_AND_BREAK_LOG(ret == AVCODEC_SAMPLE_ERR_OK, "Push data failed, thread out");

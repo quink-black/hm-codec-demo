@@ -6,7 +6,9 @@ std::unique_ptr<IVideoDecoder> IVideoDecoder::Create(DecoderBackend type) {
     case DecoderBackend::HM:
         return std::make_unique<VideoDecoder>();
     case DecoderBackend::FFmpeg:
-        return std::make_unique<FFVideoDecoder>();
+        return std::make_unique<FFVideoDecoder>(false);
+    case DecoderBackend::FFmpeg_HW:
+        return std::make_unique<FFVideoDecoder>(true);
     default:
         return nullptr;
     }

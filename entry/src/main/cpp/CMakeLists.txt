@@ -28,6 +28,8 @@ link_directories(${ffmpeg_prefix}/lib)
 add_library(player SHARED sample/player/PlayerNative.cpp
                           sample/player/Player.cpp
                           capbilities/Demuxer.cpp
+                          capbilities/include/VideoDecoder.h
+                          capbilities/include/FFVideoDecoder.h
                           capbilities/FFVideoDecoder.cpp
                           capbilities/HMVideoDecoder.cpp
                           capbilities/VideoDecoder.cpp

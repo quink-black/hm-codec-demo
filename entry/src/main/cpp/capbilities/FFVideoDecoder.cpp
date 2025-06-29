@@ -18,6 +18,11 @@
 #include "dfx/error/AVCodecSampleError.h"
 #include <cerrno>
 
+extern "C" {
+#include "libavutil/hwcontext.h"
+#include "libavutil/hwcontext_oh.h"
+}
+
 #undef LOG_TAG
 #define LOG_TAG "FFVideoDecoder"
 
@@ -25,12 +30,28 @@ FFVideoDecoder::~FFVideoDecoder() {
     Release();
 }
 
+static void LogCb(void *ctx, int level, const char *fmt, va_list va) {
+    char buf[4096] = {0};
+
+    vsnprintf(buf, sizeof(buf), fmt, va);
+    if (level <= AV_LOG_ERROR)
+        AVCODEC_SAMPLE_LOGE("%{public}s", buf);
+    else if (level <= AV_LOG_WARNING)
+        AVCODEC_SAMPLE_LOGW("%{public}s", buf);
+    else if (level <= AV_LOG_INFO)
+        AVCODEC_SAMPLE_LOGI("%{public}s", buf);
+    else
+        AVCODEC_SAMPLE_LOGD("%{public}s", buf);
+}
+
 int32_t FFVideoDecoder::Create(const std::string &videoCodecMime) {
+    av_log_set_callback(&LogCb);
+
     const AVCodec *codec = nullptr;
     if (videoCodecMime == OH_AVCODEC_MIMETYPE_VIDEO_AVC)
-        codec = avcodec_find_decoder(AV_CODEC_ID_H264);
+        codec = avcodec_find_decoder_by_name("h264_ohcodec");
     else if (videoCodecMime == OH_AVCODEC_MIMETYPE_VIDEO_HEVC)
-        codec = avcodec_find_decoder(AV_CODEC_ID_HEVC);
+        codec = avcodec_find_decoder_by_name("hevc_ohcodec");
     else
         return AVCODEC_SAMPLE_ERR_ERROR;
         
@@ -74,7 +95,11 @@ int FFVideoDecoder::ReceiveFrame() {
         }
 
         // Now render frame
-        RenderFrame();
+        AVCODEC_SAMPLE_LOGD("render frame pts %{public}" PRId64, frame->pts);
+        if (frame->format == AV_PIX_FMT_OHCODEC)
+            RenderFrameHw();
+        else
+            RenderFrameSw();
     }
 }
 
@@ -98,7 +123,12 @@ void FFVideoDecoder::ConvertFrame(AVFrame *src, AVFrame *dst, AVPixelFormat dst_
     sws_freeContext(sws_ctx);
 }
 
-int FFVideoDecoder::RenderFrame() {
+int FFVideoDecoder::RenderFrameHw() {
+    av_frame_unref(dec_frame_.get());
+    return 0;
+}
+
+int FFVideoDecoder::RenderFrameSw() {
     OHNativeWindowBuffer *buffer = nullptr;
     int fd = -1;
     OH_NativeBuffer_Format format = NATIVEBUFFER_PIXEL_FMT_BUTT;
@@ -181,6 +211,7 @@ void FFVideoDecoder::Thread() {
             pkt_->data = in_addr + attr.offset;
             pkt_->size = attr.size;
             pkt_->pts = attr.pts;
+            pkt_->flags = (attr.flags & AVCODEC_BUFFER_FLAGS_SYNC_FRAME) ? AV_PKT_FLAG_KEY : 0;
         } else {
             pkt_->data = nullptr;
             pkt_->size = 0;
@@ -207,7 +238,24 @@ int32_t FFVideoDecoder::Config(const SampleInfo &sampleInfo, CodecUserData *code
     decoder_->framerate = AVRational{static_cast<int>(sampleInfo.frameRate), 1};
     decoder_->pkt_timebase = AVRational{1, 1000000};
 
-    int ret = avcodec_open2(decoder_.get(), decoder_->codec, nullptr);
+    if (hwdev_) {
+        AVBufferRef *hw = nullptr;
+        int ret = av_hwdevice_ctx_create(&hw, AV_HWDEVICE_TYPE_OHCODEC, nullptr, nullptr, 0);
+        if (ret < 0) {
+            AVCODEC_SAMPLE_LOGE("create hwdevice failed, %{public}d, %{public}s", ret, av_err2str(ret));
+            return AVCODEC_SAMPLE_ERR_ERROR;
+        }
+
+        auto device_ctx = reinterpret_cast<AVHWDeviceContext *>(hw->data);
+        auto dev = static_cast<AVOHCodecDeviceContext *>(device_ctx->hwctx);
+        dev->native_window = sampleInfo.window;
+        decoder_->hw_device_ctx = hw;
+    }
+
+    AVDictionary *dict = nullptr;
+    av_dict_set(&dict, "allow_sw", "y", 0);
+    int ret = avcodec_open2(decoder_.get(), decoder_->codec, &dict);
+    av_dict_free(&dict);
     if (ret < 0) {
         AVCODEC_SAMPLE_LOGE("Open decoder failed, %{public}s", av_err2str(ret));
         return AVCODEC_SAMPLE_ERR_ERROR;
@@ -262,4 +310,8 @@ int32_t FFVideoDecoder::Release() {
     render_frame_ = nullptr;
     
     return 0;
+}
+
+void FFVideoDecoder::Flush() {
+    avcodec_flush_buffers(decoder_.get());
 }

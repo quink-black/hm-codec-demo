@@ -17,7 +17,7 @@ extern "C" {
 
 class FFVideoDecoder final : public IVideoDecoder {
 public:
-    FFVideoDecoder() = default;
+    FFVideoDecoder(bool hwdev) : hwdev_(hwdev) {}
     ~FFVideoDecoder() override;
 
     int32_t Create(const std::string &videoCodecMime) override;
@@ -26,13 +26,16 @@ public:
     int32_t FreeOutputBuffer(uint32_t bufferIndex, bool render) override;
     int32_t Start() override;
     int32_t Release() override;
+    void Flush() override;
 
 private:
     void Thread();
     int ReceiveFrame();
     void ConvertFrame(AVFrame *src, AVFrame *dst, AVPixelFormat dst_format);
-    int RenderFrame();
+    int RenderFrameSw();
+    int RenderFrameHw();
 
+    bool hwdev_ = false;
     std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> decoder_{
         nullptr, [](AVCodecContext *p) { avcodec_free_context(&p); }};
     CodecUserData *codecUserData_ = nullptr;
