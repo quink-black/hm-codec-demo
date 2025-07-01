@@ -19,6 +19,7 @@ set(BASE_LIBRARY
     libnative_media_codecbase.so libnative_media_core.so libnative_media_vdec.so libnative_window.so
     libnative_media_venc.so libnative_media_acodec.so libnative_media_avdemuxer.so libnative_media_avsource.so libnative_media_avmuxer.so
     libohaudio.so
+    avcodec swresample swscale avutil x264 z native_buffer
 )
 
 set(ffmpeg_prefix ${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg)
@@ -39,14 +40,15 @@ add_library(player SHARED sample/player/PlayerNative.cpp
                           render/PluginManager.cpp
                           common/SampleCallback.cpp
 )
-target_link_libraries(player PUBLIC avcodec swresample swscale avutil z native_buffer)
 target_link_options(player PUBLIC -Wl,-Bsymbolic)
 
 add_library(recorder SHARED sample/recorder/RecorderNative.cpp
                             sample/recorder/Recorder.cpp
                             capbilities/Muxer.cpp
+                            capbilities/include/FFVideoEncoder.h
                             capbilities/include/HMVideoEncoder.h
                             capbilities/include/VideoEncoder.h
+                            capbilities/FFVideoEncoder.cpp
                             capbilities/HMVideoEncoder.cpp
                             capbilities/VideoEncoder.cpp
                             common/SampleCallback.cpp
@@ -54,3 +56,4 @@ add_library(recorder SHARED sample/recorder/RecorderNative.cpp
 
 target_link_libraries(player PUBLIC ${BASE_LIBRARY})
 target_link_libraries(recorder PUBLIC ${BASE_LIBRARY})
+target_link_options(recorder PUBLIC -Wl,-Bsymbolic)

@@ -18,6 +18,7 @@
 
 #include <memory>
 
+#include "AVCodecSampleLog.h"
 #include "SampleInfo.h"
 #include "SampleCallback.h"
 

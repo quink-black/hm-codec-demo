@@ -25,7 +25,6 @@
 #include "native_window/buffer_handle.h"
 #include "SampleCallback.h"
 #include "dfx/error/AVCodecSampleError.h"
-#include "AVCodecSampleLog.h"
 
 class VideoEncoder final : public IVideoEncoder {
 public:
