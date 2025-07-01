@@ -46,7 +46,7 @@ private:
     void StartRelease();
     int32_t WaitForDone();
 
-    std::unique_ptr<VideoEncoder> videoEncoder_ = nullptr;
+    std::unique_ptr<IVideoEncoder> videoEncoder_ = nullptr;
     std::unique_ptr<Muxer> muxer_ = nullptr;
 
     std::mutex mutex_;

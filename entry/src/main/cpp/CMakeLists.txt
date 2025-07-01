@@ -45,6 +45,9 @@ target_link_options(player PUBLIC -Wl,-Bsymbolic)
 add_library(recorder SHARED sample/recorder/RecorderNative.cpp
                             sample/recorder/Recorder.cpp
                             capbilities/Muxer.cpp
+                            capbilities/include/HMVideoEncoder.h
+                            capbilities/include/VideoEncoder.h
+                            capbilities/HMVideoEncoder.cpp
                             capbilities/VideoEncoder.cpp
                             common/SampleCallback.cpp
 )

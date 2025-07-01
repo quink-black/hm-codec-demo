@@ -36,7 +36,7 @@ int32_t Recorder::Init(SampleInfo &sampleInfo) {
 
     sampleInfo_ = sampleInfo;
 
-    videoEncoder_ = std::make_unique<VideoEncoder>();
+    videoEncoder_ = IVideoEncoder::Create(EncoderBackend::HM);
     muxer_ = std::make_unique<Muxer>();
 
     int32_t ret = videoEncoder_->Create(sampleInfo_.videoCodecMime);
