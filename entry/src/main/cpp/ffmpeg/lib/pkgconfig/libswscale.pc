@@ -1,0 +1,14 @@
+prefix=/Users/quink/work/ffmpeg_all/ffmpeg-ci/install-hm-arm64
+exec_prefix=${prefix}
+libdir=/Users/quink/work/ffmpeg_all/ffmpeg-ci/install-hm-arm64/lib
+includedir=/Users/quink/work/ffmpeg_all/ffmpeg-ci/install-hm-arm64/include
+
+Name: libswscale
+Description: FFmpeg image rescaling library
+Version: 9.0.100
+Requires: libavutil >= 60.4.100
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lswscale -lm
+Libs.private: 
+Cflags: -I${includedir}

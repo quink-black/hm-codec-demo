@@ -1,0 +1,14 @@
+prefix=/Users/quink/work/ffmpeg_all/ffmpeg-ci/install-hm-arm64
+exec_prefix=${prefix}
+libdir=/Users/quink/work/ffmpeg_all/ffmpeg-ci/install-hm-arm64/lib
+includedir=/Users/quink/work/ffmpeg_all/ffmpeg-ci/install-hm-arm64/include
+
+Name: libavfilter
+Description: FFmpeg audio/video filtering library
+Version: 11.0.100
+Requires: libswscale >= 9.0.100, libavformat >= 62.1.101, libavcodec >= 62.5.100, libswresample >= 6.0.100, libavutil >= 60.4.100
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavfilter -pthread -lm
+Libs.private: 
+Cflags: -I${includedir}
