@@ -19,7 +19,7 @@ set(BASE_LIBRARY
     libnative_media_codecbase.so libnative_media_core.so libnative_media_vdec.so libnative_window.so
     libnative_media_venc.so libnative_media_acodec.so libnative_media_avdemuxer.so libnative_media_avsource.so libnative_media_avmuxer.so
     libohaudio.so
-    avcodec swresample swscale avutil x264 z native_buffer
+    avcodec swresample swscale avutil z native_buffer
 )
 
 set(ffmpeg_prefix ${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg)

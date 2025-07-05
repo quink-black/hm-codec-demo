@@ -14,6 +14,7 @@
  */
 
 #include "HMVideoEncoder.h"
+#include "FFVideoEncoder.h"
 
 #undef LOG_TAG
 #define LOG_TAG "VideoEncoder"
@@ -23,6 +24,8 @@ std::unique_ptr<IVideoEncoder> IVideoEncoder::Create(EncoderBackend type)
     switch (type) {
     case EncoderBackend::HM:
         return std::make_unique<VideoEncoder>();
+    case EncoderBackend::FFmpeg_HW:
+        return std::make_unique<FFVideoEncoder>(true);
     default:
         return nullptr;
     }

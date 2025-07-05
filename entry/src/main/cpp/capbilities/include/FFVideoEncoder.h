@@ -30,6 +30,8 @@ public:
 
 private:
     void Thread();
+    
+    int OutputData(uint8_t *data, int size, int64_t pts, uint32_t flags);
 
     bool hwdev_ = false;
     std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> encoder_{
@@ -40,10 +42,7 @@ private:
     std::unique_ptr<AVPacket, void (*)(AVPacket *)> pkt_{av_packet_alloc(), [](AVPacket *p) { av_packet_free(&p); }};
     std::unique_ptr<AVFrame, void (*)(AVFrame *)> frame_{av_frame_alloc(), [](AVFrame *p) { av_frame_free(&p); }};
 
-    const int32_t in_buf_cap_ = 2 * 1024 * 1024;
-    const int32_t out_buf_cap_ = 1;
-    std::unique_ptr<OH_AVBuffer, decltype(&OH_AVBuffer_Destroy)> in_buffer_ = {OH_AVBuffer_Create(in_buf_cap_),
-                                                                               OH_AVBuffer_Destroy};
+    const int32_t out_buf_cap_ = 4 * 1024 * 1024;;
     std::unique_ptr<OH_AVBuffer, decltype(&OH_AVBuffer_Destroy)> out_buffer_ = {OH_AVBuffer_Create(out_buf_cap_),
                                                                                OH_AVBuffer_Destroy};
 
@@ -51,11 +50,7 @@ private:
 
     std::mutex pkt_mutex_;
     std::condition_variable pkt_cond_;
-    bool has_pkt_ = false;
-
-    std::mutex frame_mutex_;
-    std::condition_variable frame_cond_;
-    bool has_frame_ = false;
-
+    bool release_pkt_ = false;
+    int eof_ = 0;
     bool quit_ = false;
 };

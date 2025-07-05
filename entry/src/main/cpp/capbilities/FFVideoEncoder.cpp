@@ -20,7 +20,7 @@
 
 extern "C" {
 #include "libavutil/hwcontext.h"
-#include "libavutil/hwcontext_oh.h"
+#include "libavutil/opt.h"
 }
 
 #undef LOG_TAG
@@ -49,7 +49,7 @@ int32_t FFVideoEncoder::Create(const std::string &videoCodecMime) {
 
     const AVCodec *codec = nullptr;
     if (videoCodecMime == OH_AVCODEC_MIMETYPE_VIDEO_AVC)
-        codec = avcodec_find_encoder(AV_CODEC_ID_H264);
+        codec = avcodec_find_encoder_by_name("h264_ohcodec");
     else if (videoCodecMime == OH_AVCODEC_MIMETYPE_VIDEO_HEVC)
         codec = avcodec_find_encoder_by_name("hevc_ohcodec");
     else
@@ -64,38 +64,111 @@ int32_t FFVideoEncoder::Create(const std::string &videoCodecMime) {
     return AVCODEC_SAMPLE_ERR_OK;
 }
 
+int FFVideoEncoder::OutputData(uint8_t *data, int size, int64_t pts, uint32_t flags) {
+    if (size > 0) {
+        uint8_t *out_addr = OH_AVBuffer_GetAddr(out_buffer_.get());
+        memcpy(out_addr, data, size);
+    }
+    OH_AVCodecBufferAttr attr = {
+        .pts = pts,
+        .size = size,
+        .offset = 0,
+        .flags = flags,
+    };
+
+    OH_AVBuffer_SetBufferAttr(out_buffer_.get(), &attr);
+    SampleCallback::OnNewOutputBuffer(nullptr, 0, out_buffer_.get(), codecUserData_);
+
+    {
+        std::unique_lock<std::mutex> lk(pkt_mutex_);
+        pkt_cond_.wait(lk, [this](){
+            return release_pkt_ || quit_ || eof_ == 1;
+        });
+        if (quit_) {
+            AVCODEC_SAMPLE_LOGI("quit");
+            return AVERROR_EOF;
+        }
+        if (eof_ == 1)
+            eof_ = 2;
+        release_pkt_ = false;
+    }
+    return 0;
+}
+
 void FFVideoEncoder::Thread() {
+    int ret;
+
+    while (true) {
+        if (eof_) {
+            avcodec_send_frame(encoder_.get(), nullptr);
+        } else {
+            frame_->width = encoder_->width;
+            frame_->height = encoder_->height;
+            frame_->format = AV_PIX_FMT_NV12;
+            frame_->pts = 0;
+            ret = av_frame_get_buffer(frame_.get(), 0);
+            if (ret < 0)
+                break;
+            frame_->format = AV_PIX_FMT_OHCODEC;
+            ret = avcodec_send_frame(encoder_.get(), frame_.get());
+            AVCODEC_SAMPLE_LOGI("Send frame %{public}d\n", ret);
+            av_frame_unref(frame_.get());
+        }
+
+        ret = avcodec_receive_packet(encoder_.get(), pkt_.get());
+        AVCODEC_SAMPLE_LOGI("receive pkt %{public}d\n", ret);
+        if (ret < 0) {
+            if (ret == AVERROR(EAGAIN)) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                continue;
+            }
+            if (ret == AVERROR_EOF) {
+                OutputData(nullptr, 0, 0, AVCODEC_BUFFER_FLAGS_EOS);
+                AVCODEC_SAMPLE_LOGI("notify eof\n");
+            }
+            break;
+        }
+
+        size_t size;
+        uint8_t *extradata = av_packet_get_side_data(pkt_.get(), AV_PKT_DATA_NEW_EXTRADATA, &size);
+        if (extradata) {
+            ret = OutputData(extradata, size, pkt_->pts, AVCODEC_BUFFER_FLAGS_CODEC_DATA);
+            if (ret < 0)
+                break;
+        }
+
+        uint32_t flags = (pkt_->flags & AV_PKT_FLAG_KEY) ? AVCODEC_BUFFER_FLAGS_SYNC_FRAME : 0;
+        ret = OutputData(pkt_->data, pkt_->size, pkt_->pts, flags);
+        if (ret < 0)
+            break;
+        av_packet_unref(pkt_.get());
+    }
 }
 
 int32_t FFVideoEncoder::Config(SampleInfo &sampleInfo, CodecUserData *codecUserData) {
     codecUserData_ = codecUserData;
-    window_ = sampleInfo.window;
 
     encoder_->width = sampleInfo.videoWidth;
     encoder_->height = sampleInfo.videoHeight;
     encoder_->framerate = AVRational{static_cast<int>(sampleInfo.frameRate), 1};
-    encoder_->pkt_timebase = AVRational{1, 1000000};
+    encoder_->time_base = AVRational{1, 1000000};
     encoder_->pix_fmt = AV_PIX_FMT_OHCODEC;
-
-    if (hwdev_) {
-        AVBufferRef *hw = nullptr;
-        int ret = av_hwdevice_ctx_create(&hw, AV_HWDEVICE_TYPE_OHCODEC, nullptr, nullptr, 0);
-        if (ret < 0) {
-            AVCODEC_SAMPLE_LOGE("create hwdevice failed, %{public}d, %{public}s", ret, av_err2str(ret));
-            return AVCODEC_SAMPLE_ERR_ERROR;
-        }
-
-        auto device_ctx = reinterpret_cast<AVHWDeviceContext *>(hw->data);
-        auto dev = static_cast<AVOHCodecDeviceContext *>(device_ctx->hwctx);
-        dev->native_window = sampleInfo.window;
-        encoder_->hw_device_ctx = hw;
-    }
+    encoder_->bit_rate = sampleInfo.bitrate;
+    encoder_->flags = AV_CODEC_FLAG_GLOBAL_HEADER;
 
     int ret = avcodec_open2(encoder_.get(), encoder_->codec, nullptr);
     if (ret < 0) {
         AVCODEC_SAMPLE_LOGE("Open decoder failed, %{public}s", av_err2str(ret));
         return AVCODEC_SAMPLE_ERR_ERROR;
     }
+    int64_t window = 0;
+    ret = av_opt_get_int(encoder_->priv_data, "native_window", AV_OPT_SEARCH_CHILDREN, &window);
+    if (ret < 0) {
+        AVCODEC_SAMPLE_LOGE("Get native window failed, %{public}s", av_err2str(ret));
+        return AVCODEC_SAMPLE_ERR_ERROR;
+    }
+    sampleInfo.window = reinterpret_cast<OHNativeWindow *>(window);
+    AVCODEC_SAMPLE_LOGI("Get native window success, %{public}p", sampleInfo.window);
 
     return AVCODEC_SAMPLE_ERR_OK;
 }
@@ -106,17 +179,43 @@ int32_t FFVideoEncoder::Start() {
 }
 
 int32_t FFVideoEncoder::FreeOutputBuffer(uint32_t bufferIndex) {
+    std::unique_lock<std::mutex> lk(pkt_mutex_);
+    release_pkt_ = true;
+    pkt_cond_.notify_one();
     return AVCODEC_SAMPLE_ERR_OK;
 }
 
 int32_t FFVideoEncoder::NotifyEndOfStream() {
+    std::unique_lock<std::mutex> lk(pkt_mutex_);
+    eof_ = true;
+    pkt_cond_.notify_one();
     return 0;
 }
 
 int32_t FFVideoEncoder::Stop() {
+    AVCODEC_SAMPLE_LOGI("Stop");
+    {
+        std::unique_lock<std::mutex> lk(pkt_mutex_);
+        quit_ = true;
+        pkt_cond_.notify_one();
+    }
+
     return 0;
 }
 
 int32_t FFVideoEncoder::Release() {
+    AVCODEC_SAMPLE_LOGI("Release >>>");
+    if (thread_.joinable()) {
+        {
+            AVCODEC_SAMPLE_LOGI("Release 1 >>>");
+            std::unique_lock<std::mutex> lk(pkt_mutex_);
+            quit_ = true;
+            pkt_cond_.notify_one();
+        }
+        AVCODEC_SAMPLE_LOGI("Release 2 >>>");
+        thread_.join();
+        AVCODEC_SAMPLE_LOGI("Release 3 >>>");
+    }
+    AVCODEC_SAMPLE_LOGI("Release 4 >>>");
     return 0;
 }
