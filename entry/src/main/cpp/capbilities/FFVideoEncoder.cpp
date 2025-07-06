@@ -20,6 +20,7 @@
 
 extern "C" {
 #include "libavutil/hwcontext.h"
+#include "libavutil/hwcontext_oh.h"
 #include "libavutil/opt.h"
 }
 
@@ -161,13 +162,10 @@ int32_t FFVideoEncoder::Config(SampleInfo &sampleInfo, CodecUserData *codecUserD
         AVCODEC_SAMPLE_LOGE("Open decoder failed, %{public}s", av_err2str(ret));
         return AVCODEC_SAMPLE_ERR_ERROR;
     }
-    int64_t window = 0;
-    ret = av_opt_get_int(encoder_->priv_data, "native_window", AV_OPT_SEARCH_CHILDREN, &window);
-    if (ret < 0) {
-        AVCODEC_SAMPLE_LOGE("Get native window failed, %{public}s", av_err2str(ret));
-        return AVCODEC_SAMPLE_ERR_ERROR;
-    }
-    sampleInfo.window = reinterpret_cast<OHNativeWindow *>(window);
+    auto device_ctx = reinterpret_cast<AVHWDeviceContext *>(encoder_->hw_device_ctx->data);
+    auto dev = static_cast<AVOHCodecDeviceContext *>(device_ctx->hwctx);
+    sampleInfo.window = static_cast<OHNativeWindow *>(dev->native_window);
+    OH_NativeWindow_NativeObjectReference(sampleInfo.window);
     AVCODEC_SAMPLE_LOGI("Get native window success, %{public}p", sampleInfo.window);
 
     return AVCODEC_SAMPLE_ERR_OK;
